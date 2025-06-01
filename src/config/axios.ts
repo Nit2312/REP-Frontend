@@ -4,7 +4,7 @@ import axios from 'axios';
 const instance = axios.create({
   baseURL: import.meta.env.VITE_API_URL
     ? `${import.meta.env.VITE_API_URL}/api`
-    : 'https://rep-update-app.onrender.com/api',
+    : 'https://rep-backend.onrender.com/api',
   headers: {
     'Content-Type': 'application/json',
   },
