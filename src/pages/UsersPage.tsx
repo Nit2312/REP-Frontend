@@ -78,7 +78,7 @@ const UsersPage: React.FC = () => {
   };
 
   const columns = [
-    { header: t('users.userId'), accessor: 'userId' },
+    { header: t('users.user_id'), accessor: 'userId' },
     { header: t('users.name'), accessor: 'name' },
     { header: t('users.email'), accessor: 'email' },
     { header: t('users.role'), accessor: 'role' },
@@ -126,7 +126,7 @@ const UsersPage: React.FC = () => {
     <Layout>
       <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between">
         <h1 className="text-2xl font-bold text-gray-900 mb-4 md:mb-0">
-          {t('users.title')}
+          {t('users')}
         </h1>
         <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
           <Button
