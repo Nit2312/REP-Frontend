@@ -78,7 +78,7 @@ const UsersPage: React.FC = () => {
   };
 
   const columns = [
-    { header: t('users.user_id'), accessor: 'userId' },
+    { header: t('users.user_id'), accessor: 'user_id' },
     { header: t('users.name'), accessor: 'name' },
     { header: t('users.email'), accessor: 'email' },
     { header: t('users.role'), accessor: 'role' },
