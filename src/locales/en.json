@@ -1,0 +1,101 @@
+{
+  "app": {
+    "title": "Factory Production Management",
+    "login": "Login",
+    "logout": "Logout",
+    "dashboard": "Dashboard",
+    "production": "Production",
+    "inventory": "Inventory",
+    "users": "Users"
+  },
+  "auth": {
+    "userId": "User ID",
+    "name": "Name",
+    "login": "Login",
+    "loginError": "Invalid User ID or Name"
+  },
+  "roles": {
+    "super_admin": "Super Admin",
+    "admin": "Admin",
+    "worker": "Worker"
+  },
+  "users": {
+    "manage": "Manage Users",
+    "add": "Add User",
+    "edit": "Edit User",
+    "delete": "Delete User",
+    "userId": "User ID",
+    "name": "Name",
+    "role": "Role",
+    "createdAt": "Created At",
+    "actions": "Actions"
+  },
+  "machines": {
+    "manage": "Manage Machines",
+    "add": "Add Machine",
+    "edit": "Edit Machine",
+    "delete": "Delete Machine",
+    "name": "Machine Name",
+    "description": "Description",
+    "status": "Status",
+    "assign": "Assign Machine"
+  },
+  "models": {
+    "manage": "Manage Models",
+    "add": "Add Model",
+    "edit": "Edit Model",
+    "delete": "Delete Model",
+    "name": "Model Name",
+    "productionKg": "Production (KG)",
+    "rawMaterials": "Raw Materials",
+    "outputDetails": "Output Details",
+    "assign": "Assign Model"
+  },
+  "production": {
+    "daily": "Daily Production",
+    "add": "Add Production Entry",
+    "machine": "Machine",
+    "model": "Model",
+    "startTime": "Start Time",
+    "endTime": "End Time",
+    "kgProduced": "KG Produced",
+    "remarks": "Remarks",
+    "date": "Date"
+  },
+  "inventory": {
+    "materials": "Raw Materials",
+    "add": "Add Material",
+    "edit": "Edit Material",
+    "delete": "Delete Material",
+    "name": "Material Name",
+    "quantity": "Quantity",
+    "unit": "Unit",
+    "threshold": "Alert Threshold",
+    "description": "Description",
+    "lowStock": "Low Stock Alert"
+  },
+  "dashboard": {
+    "dailyProduction": "Daily Production",
+    "weeklyTrends": "Weekly Trends",
+    "monthlySummary": "Monthly Summary",
+    "machinePerformance": "Machine Performance",
+    "workerPerformance": "Worker Performance",
+    "materialUsage": "Material Usage",
+    "filters": {
+      "dateRange": "Date Range",
+      "machine": "Machine",
+      "worker": "Worker",
+      "model": "Model"
+    }
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "actions": "Actions",
+    "noData": "No data available",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "success": "Success"
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "app": {
+    "title": "फैक्टरी उत्पादन प्रबंधन",
+    "login": "लॉगिन",
+    "logout": "लॉगआउट",
+    "dashboard": "डैशबोर्ड",
+    "production": "उत्पादन",
+    "inventory": "इन्वेंटरी",
+    "users": "उपयोगकर्ता"
+  },
+  "auth": {
+    "userId": "उपयोगकर्ता आईडी",
+    "name": "नाम",
+    "login": "लॉगिन",
+    "loginError": "अमान्य उपयोगकर्ता आईडी या नाम"
+  },
+  "roles": {
+    "super_admin": "सुपर एडमिन",
+    "admin": "एडमिन",
+    "worker": "कर्मचारी"
+  },
+  "users": {
+    "manage": "उपयोगकर्ता प्रबंधन",
+    "add": "उपयोगकर्ता जोड़ें",
+    "edit": "उपयोगकर्ता संपादित करें",
+    "delete": "उपयोगकर्ता हटाएं",
+    "userId": "उपयोगकर्ता आईडी",
+    "name": "नाम",
+    "role": "भूमिका",
+    "createdAt": "बनाया गया",
+    "actions": "कार्य"
+  },
+  "machines": {
+    "manage": "मशीन प्रबंधन",
+    "add": "मशीन जोड़ें",
+    "edit": "मशीन संपादित करें",
+    "delete": "मशीन हटाएं",
+    "name": "मशीन का नाम",
+    "description": "विवरण",
+    "status": "स्थिति",
+    "assign": "मशीन सौंपें"
+  },
+  "models": {
+    "manage": "मॉडल प्रबंधन",
+    "add": "मॉडल जोड़ें",
+    "edit": "मॉडल संपादित करें",
+    "delete": "मॉडल हटाएं",
+    "name": "मॉडल का नाम",
+    "productionKg": "उत्पादन (किग्रा)",
+    "rawMaterials": "कच्चा माल",
+    "outputDetails": "आउटपुट विवरण",
+    "assign": "मॉडल सौंपें"
+  },
+  "production": {
+    "daily": "दैनिक उत्पादन",
+    "add": "उत्पादन प्रविष्टि जोड़ें",
+    "machine": "मशीन",
+    "model": "मॉडल",
+    "startTime": "प्रारंभ समय",
+    "endTime": "समाप्ति समय",
+    "kgProduced": "किग्रा उत्पादित",
+    "remarks": "टिप्पणियां",
+    "date": "तारीख"
+  },
+  "inventory": {
+    "materials": "कच्चा माल",
+    "add": "सामग्री जोड़ें",
+    "edit": "सामग्री संपादित करें",
+    "delete": "सामग्री हटाएं",
+    "name": "सामग्री का नाम",
+    "quantity": "मात्रा",
+    "unit": "इकाई",
+    "threshold": "अलर्ट थ्रेशोल्ड",
+    "description": "विवरण",
+    "lowStock": "कम स्टॉक अलर्ट"
+  },
+  "dashboard": {
+    "dailyProduction": "दैनिक उत्पादन",
+    "weeklyTrends": "साप्ताहिक रुझान",
+    "monthlySummary": "मासिक सारांश",
+    "machinePerformance": "मशीन प्रदर्शन",
+    "workerPerformance": "कर्मचारी प्रदर्शन",
+    "materialUsage": "सामग्री उपयोग",
+    "filters": {
+      "dateRange": "तारीख सीमा",
+      "machine": "मशीन",
+      "worker": "कर्मचारी",
+      "model": "मॉडल"
+    }
+  },
+  "common": {
+    "save": "सहेजें",
+    "cancel": "रद्द करें",
+    "confirm": "पुष्टि करें",
+    "actions": "कार्य",
+    "noData": "कोई डेटा उपलब्ध नहीं",
+    "loading": "लोड हो रहा है...",
+    "error": "त्रुटि हुई है",
+    "success": "सफलता"
+  }
+}

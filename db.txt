@@ -1,0 +1,122 @@
+-- Create the database
+CREATE DATABASE IF NOT EXISTS raameshth_management;
+USE raameshth_management;
+
+-- Users table
+CREATE TABLE IF NOT EXISTS users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  userId VARCHAR(50) NOT NULL UNIQUE,
+  name VARCHAR(100) NOT NULL,
+  role ENUM('super_admin', 'admin', 'worker') NOT NULL DEFAULT 'worker',
+  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Insert initial super admin
+INSERT INTO users (userId, name, role) VALUES ('SA001', 'Super Admin', 'super_admin');
+INSERT INTO users (userId, name, role) VALUES ('AD001', 'Admin User', 'admin');
+INSERT INTO users (userId, name, role) VALUES ('WK001', 'Worker 1', 'worker');
+
+-- Machines table
+CREATE TABLE IF NOT EXISTS machines (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  description TEXT,
+  status ENUM('active', 'inactive', 'maintenance') DEFAULT 'active',
+  current_mould_id INT,
+  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (current_mould_id) REFERENCES moulds(id)
+);
+
+-- Moulds table
+CREATE TABLE IF NOT EXISTS moulds (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  description TEXT,
+  status ENUM('active', 'inactive', 'maintenance') DEFAULT 'active',
+  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Product Models table
+CREATE TABLE IF NOT EXISTS product_models (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  productionKg DECIMAL(10,2) DEFAULT 0,
+  rawMaterials TEXT,
+  outputDetails TEXT,
+  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Activities table
+CREATE TABLE IF NOT EXISTS activities (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  machineId INT NOT NULL,
+  mouldId INT NOT NULL,
+  modelId INT NOT NULL,
+  workerId INT NOT NULL,
+  status ENUM('active', 'completed', 'paused') DEFAULT 'active',
+  startDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  endDate TIMESTAMP NULL,
+  FOREIGN KEY (machineId) REFERENCES machines(id),
+  FOREIGN KEY (mouldId) REFERENCES moulds(id),
+  FOREIGN KEY (modelId) REFERENCES product_models(id),
+  FOREIGN KEY (workerId) REFERENCES users(id)
+);
+
+-- Color Mix Formulas table
+CREATE TABLE IF NOT EXISTS color_mix_formulas (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  materialCount INT NOT NULL,
+  formula TEXT NOT NULL,
+  createdBy INT NOT NULL,
+  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (createdBy) REFERENCES users(id)
+);
+
+-- Color Mix Entries table
+CREATE TABLE IF NOT EXISTS color_mix_entries (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  formulaId INT NOT NULL,
+  activityId INT NOT NULL,
+  materialWeights JSON NOT NULL,
+  colorRequirement DECIMAL(10,2) NOT NULL,
+  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (formulaId) REFERENCES color_mix_formulas(id),
+  FOREIGN KEY (activityId) REFERENCES activities(id)
+);
+
+-- Hourly Production Logs table
+CREATE TABLE IF NOT EXISTS hourly_production_logs (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  activityId INT NOT NULL,
+  hour TIME NOT NULL,
+  totalPieces INT NOT NULL DEFAULT 0,
+  perfectPieces INT NOT NULL DEFAULT 0,
+  defectPieces INT NOT NULL DEFAULT 0,
+  date DATE NOT NULL,
+  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (activityId) REFERENCES activities(id)
+);
+
+-- Raw Materials table
+CREATE TABLE IF NOT EXISTS raw_materials (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  quantity DECIMAL(10,2) NOT NULL,
+  unit VARCHAR(20) NOT NULL,
+  threshold DECIMAL(10,2) DEFAULT 0,
+  description TEXT,
+  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Finished Goods Inventory table
+CREATE TABLE IF NOT EXISTS finished_goods (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  modelId INT NOT NULL,
+  quantity DECIMAL(10,2) NOT NULL,
+  perfectCount INT NOT NULL DEFAULT 0,
+  defectCount INT NOT NULL DEFAULT 0,
+  date DATE NOT NULL,
+  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (modelId) REFERENCES product_models(id)
+);
