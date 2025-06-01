@@ -161,21 +161,21 @@ INSERT INTO raw_materials (id, name, quantity, unit, threshold, description, cre
 (5, 'm3', 1499.00, 'kg', 200.00, ' ', '2025-05-24 09:33:11');
 
 -- Table structure for table tasks
-CREATE TABLE tasks (
-  id INTEGER PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
-  description TEXT DEFAULT NULL,
-  machine_id INTEGER NOT NULL,
-  mould_id INTEGER NOT NULL,
-  product_id INTEGER NOT NULL,
-  color_mix_id INTEGER NOT NULL,
-  worker_id INTEGER NOT NULL,
-  target INTEGER NOT NULL DEFAULT 0,
-  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','in_progress','completed','cancelled')),
-  created_by INTEGER NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
+  CREATE TABLE tasks (
+    id INTEGER PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description TEXT DEFAULT NULL,
+    machine_id INTEGER NOT NULL,
+    mould_id INTEGER NOT NULL,
+    product_id INTEGER NOT NULL,
+    color_mix_id INTEGER NOT NULL,
+    worker_id INTEGER NOT NULL,
+    target INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','in_progress','completed','cancelled')),
+    created_by INTEGER NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
 
 INSERT INTO tasks (id, name, description, machine_id, mould_id, product_id, color_mix_id, worker_id, target, status, created_by, created_at, updated_at) VALUES
 (13, 'new12', 'na', 1, 1, 1, 4, 2, 120, 'pending', 1, '2025-05-29 06:09:16', '2025-05-29 11:52:55'),
