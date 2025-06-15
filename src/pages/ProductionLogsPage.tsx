@@ -68,7 +68,7 @@ const ProductionLogsPage: React.FC = () => {
 
   const fetchTask = async () => {
     try {
-      const response = await axios.get(`/tasks/${taskId}`);
+      const response = await axios.get(`/api/tasks/${taskId}`);
       setTask(response.data);
     } catch (err) {
       toast.error('Failed to fetch task details');
@@ -77,20 +77,17 @@ const ProductionLogsPage: React.FC = () => {
 
   const fetchLogs = async () => {
     try {
-      const response = await axios.get(`/hourly-production-logs/${taskId}`);
+      const response = await axios.get('/api/production-logs');
       setLogs(response.data);
-      setError(null);
-    } catch (err) {
-      setError('Failed to fetch production logs');
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching production logs:', error);
     }
   };
 
   const handleDelete = async (id: number) => {
     if (!window.confirm('Are you sure you want to delete this log?')) return;
     try {
-      await axios.delete(`/hourly-production-logs/${id}`);
+      await axios.delete(`/api/production-logs/${id}`);
       toast.success('Log deleted successfully');
       fetchLogs();
     } catch (err) {
@@ -138,10 +135,10 @@ const ProductionLogsPage: React.FC = () => {
       };
 
       if (formData.id) {
-        await axios.put(`/hourly-production-logs/${formData.id}`, data);
+        await axios.put(`/api/production-logs/${formData.id}`, data);
         toast.success('Log updated successfully');
       } else {
-        await axios.post('/hourly-production-logs', data);
+        await axios.post('/api/production-logs', data);
         toast.success('Log added successfully');
       }
 

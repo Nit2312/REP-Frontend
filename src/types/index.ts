@@ -59,6 +59,7 @@ export interface Product {
   description: string;
   category: string;
   status: 'active' | 'inactive';
+  per_hour_production: number | null;
   createdAt: string;
   updatedAt: string;
 }

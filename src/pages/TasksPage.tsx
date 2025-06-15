@@ -110,7 +110,7 @@ const TasksPage: React.FC = () => {
 
   const fetchTasks = async () => {
     try {
-      const response = await axios.get('/tasks');
+      const response = await axios.get('/api/tasks');
       setTasks(response.data);
       setError(null);
     } catch (err) {
@@ -123,11 +123,11 @@ const TasksPage: React.FC = () => {
   const fetchDropdownData = async () => {
     try {
       const [machinesRes, mouldsRes, productsRes, formulasRes, workersRes] = await Promise.all([
-        axios.get('/machines'),
-        axios.get('/moulds'),
-        axios.get('/products'),
-        axios.get('/color-mix-formulas'),
-        axios.get('/workers')
+        axios.get('/api/machines'),
+        axios.get('/api/moulds'),
+        axios.get('/api/products'),
+        axios.get('/api/color-mix-formulas'),
+        axios.get('/api/workers')
       ]);
 
       setMachines(machinesRes.data);
@@ -156,10 +156,10 @@ const TasksPage: React.FC = () => {
       };
 
       if (selectedTask) {
-        await axios.put(`/tasks/${selectedTask.id}`, data);
+        await axios.put(`/api/tasks/${selectedTask.id}`, data);
         toast.success('Task updated successfully');
       } else {
-        await axios.post('/tasks', data);
+        await axios.post('/api/tasks', data);
         toast.success('Task created successfully');
       }
 
@@ -185,7 +185,7 @@ const TasksPage: React.FC = () => {
 
   const handleStatusUpdate = async (taskId: number, newStatus: string) => {
     try {
-      await axios.put(`/tasks/${taskId}`, { status: newStatus });
+      await axios.put(`/api/tasks/${taskId}`, { status: newStatus });
       toast.success('Task status updated successfully');
       fetchTasks();
     } catch (err) {
@@ -201,7 +201,7 @@ const TasksPage: React.FC = () => {
   const handleDeleteTask = async (id: number) => {
     if (!window.confirm('Are you sure you want to delete this task?')) return;
     try {
-      await axios.delete(`/tasks/${id}`);
+      await axios.delete(`/api/tasks/${id}`);
       toast.success('Task deleted');
       fetchTasks();
     } catch (error: any) {

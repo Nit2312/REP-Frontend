@@ -15,19 +15,26 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit }) => {
     description: product?.description || '',
     category: product?.category || '',
     status: product?.status || 'active',
-    perhourproduction: product?.perhourproduction || '',
+    per_hour_production: product?.per_hour_production?.toString() || '',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const value = e.target.type === 'number' ? e.target.value : e.target.value;
+    setFormData({ ...formData, [e.target.name]: value });
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const submitData = {
+      ...formData,
+      per_hour_production: formData.per_hour_production ? parseFloat(formData.per_hour_production) : null,
+    };
+    onSubmit(submitData);
   };
 
   return (
     <form
-      onSubmit={e => {
-        e.preventDefault();
-        onSubmit(formData);
-      }}
+      onSubmit={handleSubmit}
       className="space-y-4"
     >
       <Input
@@ -57,13 +64,13 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit }) => {
         fullWidth
       />
       <Input
-        id="perhourproduction"
-        name="perhourproduction"
+        id="per_hour_production"
+        name="per_hour_production"
         label="Production per Hour"
         type="number"
         step="0.01"
         min="0"
-        value={formData.perhourproduction}
+        value={formData.per_hour_production}
         onChange={handleChange}
         required
         fullWidth

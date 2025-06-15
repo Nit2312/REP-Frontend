@@ -3,8 +3,8 @@ import axios from 'axios';
 // Create axios instance with default config
 const instance = axios.create({
   baseURL: import.meta.env.VITE_API_URL
-    ? `${import.meta.env.VITE_API_URL}/api`
-    : 'https://rep-backend.onrender.com/api',
+    ? `${import.meta.env.VITE_API_URL}`
+    : 'https://rep-backend.onrender.com',
   headers: {
     'Content-Type': 'application/json',
   },

@@ -29,11 +29,17 @@ const AddColorFormulaForm: React.FC<AddColorFormulaFormProps> = ({ materials, on
     if (materialRows.some((m: any) => !m.materialId || !m.weight)) return setError('All materials and weights are required');
     if (!colorWeight) return setError('Color weight is required');
     setError('');
+
+    // Convert formula to proper format
+    const formulaObj = Object.fromEntries(
+      materialRows.map((m: any) => [m.materialId, Number(m.weight)])
+    );
+
     onSubmit({
       name,
       materialCount: materialRows.length,
-      formula: JSON.stringify(Object.fromEntries(materialRows.map((m: any) => [m.materialId, m.weight]))),
-      colorWeight,
+      formula: JSON.stringify(formulaObj),
+      colorWeight: Number(colorWeight),
       createdBy: 1 // TODO: Replace with actual user id from context
     });
   };

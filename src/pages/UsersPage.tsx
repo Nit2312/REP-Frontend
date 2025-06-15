@@ -9,16 +9,16 @@ import Modal from '../components/ui/Modal';
 import UserForm from '../components/forms/UserForm';
 import { useAuth } from '../context/AuthContext';
 import axios from '../config/axios';
-import { isAxiosError as isAxiosErrorBase } from 'axios';
+import { User } from '../types';
 
 const UsersPage: React.FC = () => {
   const { t } = useTranslation();
   const { state } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
-  // Fix: ensure selectedUser is typed so selectedUser.id is always available
-  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -27,15 +27,13 @@ const UsersPage: React.FC = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/users');
-      // Ensure we're setting the users data correctly
-      setUsers(response.data || []);
+      setError(null);
+      const response = await axios.get('/api/users');
+      console.log('Fetched users:', response.data);
+      setUsers(response.data);
     } catch (error) {
       console.error('Error fetching users:', error);
-      // Show error to user
-      if (isAxiosErrorBase(error)) {
-        alert(error.response?.data?.message || 'Error fetching users');
-      }
+      setError('Failed to fetch users');
     } finally {
       setLoading(false);
     }
@@ -43,52 +41,64 @@ const UsersPage: React.FC = () => {
 
   const handleAddUser = async (data: any) => {
     try {
+      setError(null);
       await axios.post('/api/users', data);
       setShowAddModal(false);
       fetchUsers();
     } catch (error) {
       console.error('Error adding user:', error);
+      setError('Failed to add user');
     }
   };
 
-  // Add update and delete handlers for users
   const handleUpdateUser = async (id: number, data: any) => {
     try {
+      setError(null);
       await axios.put(`/api/users/${id}`, data);
       setSelectedUser(null);
       fetchUsers();
     } catch (error) {
       console.error('Error updating user:', error);
+      setError('Failed to update user');
     }
   };
 
-  const handleDeleteUser = async (userId: number) => {
-    if (window.confirm(t('users.confirmDelete'))) {
-      try {
-        await axios.delete(`/api/users/${userId}`);
-        // No response body expected for 204, just refresh
-        fetchUsers();
-      } catch (error: any) {
-        if (isAxiosErrorBase(error)) {
-          alert(error.response?.data?.message || 'Error deleting user');
-        }
-        console.error('Error deleting user:', error);
-      }
+  const handleDeleteUser = async (id: number) => {
+    if (!window.confirm(t('users.confirmDelete'))) return;
+    try {
+      setError(null);
+      await axios.delete(`/api/users/${id}`);
+      fetchUsers();
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      setError('Failed to delete user');
     }
   };
+
+  // Only super_admin and admin can access this page
+  if (state.user?.role === 'worker') {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-full">
+          <p className="text-red-500">{t('common.unauthorized')}</p>
+        </div>
+      </Layout>
+    );
+  }
 
   const columns = [
     { header: t('users.user_id'), accessor: 'user_id' },
     { header: t('users.name'), accessor: 'name' },
-    { header: t('users.email'), accessor: 'email' },
     { header: t('users.role'), accessor: 'role' },
-    { header: t('users.createdAt'), accessor: 'createdAt', 
+    { 
+      header: t('users.createdAt'), 
+      accessor: 'created_at',
       cell: (value: string) => new Date(value).toLocaleDateString() 
     },
     {
       header: t('common.actions'),
       accessor: 'id',
-      cell: (value: any, row: any) => (
+      cell: (value: number, row: User) => (
         <div className="flex space-x-2">
           <Button
             variant="outline"
@@ -111,22 +121,11 @@ const UsersPage: React.FC = () => {
     },
   ];
 
-  // Only super_admin and admin can access this page
-  if (state.user?.role === 'worker') {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-full">
-          <p className="text-red-500">{t('common.unauthorized')}</p>
-        </div>
-      </Layout>
-    );
-  }
-
   return (
     <Layout>
       <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between">
         <h1 className="text-2xl font-bold text-gray-900 mb-4 md:mb-0">
-          {t('users')}
+          {t('users.manage')}
         </h1>
         <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
           <Button
@@ -147,6 +146,12 @@ const UsersPage: React.FC = () => {
           </Button>
         </div>
       </div>
+
+      {error && (
+        <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-md">
+          {error}
+        </div>
+      )}
 
       <Card>
         <DataTable
@@ -173,7 +178,7 @@ const UsersPage: React.FC = () => {
         >
           <UserForm
             user={selectedUser}
-            onSubmit={(data) => handleUpdateUser((selectedUser as any).id, data)}
+            onSubmit={(data) => handleUpdateUser(selectedUser.id, data)}
           />
         </Modal>
       )}

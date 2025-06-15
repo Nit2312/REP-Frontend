@@ -27,11 +27,13 @@ const ProductsPage = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await axios.get('/products');
+      setLoading(true);
+      const response = await axios.get('/api/products');
       setProducts(response.data);
       setError(null);
-    } catch (err) {
+    } catch (error: any) {
       setError('Failed to fetch products');
+      console.error('Error fetching products:', error);
     } finally {
       setLoading(false);
     }
@@ -50,7 +52,7 @@ const ProductsPage = () => {
         description: data.description || null,
         category: data.category,
         status: data.status || 'active',
-        perhourproduction: data.perhourproduction || null,
+        per_hour_production: data.per_hour_production || null,
       });
       setShowAddModal(false);
       fetchProducts();
@@ -76,7 +78,7 @@ const ProductsPage = () => {
         description: data.description || null,
         category: data.category,
         status: data.status || 'active',
-        perhourproduction: data.perhourproduction || null,
+        per_hour_production: data.per_hour_production || null,
       });
       setSelectedProduct(null);
       fetchProducts();
@@ -92,14 +94,16 @@ const ProductsPage = () => {
 
   const handleDeleteProduct = async (id: number) => {
     if (!window.confirm('Are you sure you want to delete this product?')) return;
-    
     try {
-      setError(null);
-      await axios.delete(`/products/${id}`);
+      await axios.delete(`/api/products/${id}`);
       fetchProducts();
     } catch (error: any) {
+      if (error.response) {
+        setError(error.response.data?.message || 'Failed to delete product');
+      } else {
+        setError('Failed to delete product');
+      }
       console.error('Error deleting product:', error);
-      setError(error.response?.data?.message || 'Failed to delete product');
     }
   };
 
@@ -139,7 +143,7 @@ const ProductsPage = () => {
             { header: 'Name', accessor: 'name' },
             { header: 'Description', accessor: 'description' },
             { header: 'Category', accessor: 'category' },
-            { header: 'Production/Hour', accessor: 'perhourproduction' },
+            { header: 'Production/Hour', accessor: 'per_hour_production' },
             { header: 'Status', accessor: 'status' },
             {
               header: 'Actions',

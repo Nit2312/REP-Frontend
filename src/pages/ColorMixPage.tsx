@@ -40,15 +40,26 @@ const ColorMixPage: React.FC = () => {
   }, []);
 
   const fetchColorMixes = async () => {
-    const res = await axios.get('/color-mix-entries');
-    setColorMixes(res.data);
+    const res = await axios.get('/api/color-mix-entries');
+    console.log('Raw color mixes data:', res.data);
+    const processedMixes = res.data.map((mix: any) => {
+      console.log('Processing mix:', {
+        id: mix.id,
+        formula_id: mix.formula_id,
+        formula_name: mix.formula_name,
+        raw_formula_name: mix.formula_name
+      });
+      return mix;
+    });
+    console.log('Processed color mixes:', processedMixes);
+    setColorMixes(processedMixes);
   };
   const fetchFormulas = async () => {
-    const res = await axios.get('/color-mix-formulas');
+    const res = await axios.get('/api/color-mix-formulas');
     setFormulas(res.data);
   };
   const fetchMaterials = async () => {
-    const res = await axios.get('/materials');
+    const res = await axios.get('/api/materials');
     setMaterials(res.data);
   };
 
@@ -60,15 +71,12 @@ const ColorMixPage: React.FC = () => {
     }
     const formula = formulas.find(f => f.id === Number(selectedFormulaId));
     if (!formula) return;
-    // Assume formula.formula is a JSON string: { materialId: weight, ... }, colorWeight: grams
-    try {
-      const formulaObj = JSON.parse(formula.formula);
-      let total = 0;
-      Object.values(formulaObj).forEach((w: any) => {
-        total += Number(w);
-      });
-      setSuggestedColor(Number(formula.colorWeight));
-    } catch {
+    
+    // Use formula_color_weight if available, otherwise fall back to colorWeight
+    const colorWeight = formula.formula_color_weight || formula.colorWeight;
+    if (colorWeight) {
+      setSuggestedColor(Number(colorWeight));
+    } else {
       setSuggestedColor(null);
     }
   }, [selectedFormulaId, mixMaterials, formulas]);
@@ -76,15 +84,18 @@ const ColorMixPage: React.FC = () => {
   // CRUD handlers for color mixes
   const handleAddMix = async (data: any) => {
     try {
+      console.log('Adding color mix with data:', data);
       // Parse materialWeights if it's a string
       const materialWeightsArr = typeof data.materialWeights === 'string'
         ? JSON.parse(data.materialWeights)
         : data.materialWeights;
       // Send as native array (not JSON string)
-      await axios.post('/color-mix-entries', {
-        ...data,
-        materialWeights: materialWeightsArr
+      const response = await axios.post('/api/color-mix-entries', {
+        formulaId: data.formulaId,
+        materialWeights: materialWeightsArr,
+        colorRequirement: data.colorRequirement
       });
+      console.log('Add mix response:', response.data);
       // Update materials inventory
       for (const material of materialWeightsArr) {
         const existingMaterial = materials.find(m => String(m.id) === String(material.materialId));
@@ -93,7 +104,7 @@ const ColorMixPage: React.FC = () => {
           if (newQuantity < 0) {
             throw new Error(`Not enough ${existingMaterial.name} in stock`);
           }
-          await axios.put(`/materials/${material.materialId}`, {
+          await axios.put(`/api/materials/${material.materialId}`, {
             ...existingMaterial,
             quantity: newQuantity
           });
@@ -109,6 +120,7 @@ const ColorMixPage: React.FC = () => {
   };
   const handleUpdateMix = async (id: number, data: any) => {
     try {
+      console.log('Updating color mix:', { id, data });
       // Get the old mix data to calculate quantity differences
       const oldMix = colorMixes.find(mix => mix.id === id);
       if (!oldMix) throw new Error('Mix not found');
@@ -117,10 +129,12 @@ const ColorMixPage: React.FC = () => {
         ? JSON.parse(data.materialWeights)
         : data.materialWeights;
       // Send as native array (not JSON string)
-      await axios.put(`/color-mix-entries/${id}`, {
-        ...data,
-        materialWeights: materialWeightsArr
+      const response = await axios.put(`/api/color-mix-entries/${id}`, {
+        formulaId: data.formulaId,
+        materialWeights: materialWeightsArr,
+        colorRequirement: data.colorRequirement
       });
+      console.log('Update mix response:', response.data);
       // Parse old material weights
       const oldMaterialWeights = typeof oldMix.materialWeights === 'string' 
         ? JSON.parse(oldMix.materialWeights) 
@@ -135,7 +149,7 @@ const ColorMixPage: React.FC = () => {
           if (newQuantity < 0) {
             throw new Error(`Not enough ${existingMaterial.name} in stock`);
           }
-          await axios.put(`/materials/${material.materialId}`, {
+          await axios.put(`/api/materials/${material.materialId}`, {
             ...existingMaterial,
             quantity: newQuantity
           });
@@ -151,15 +165,21 @@ const ColorMixPage: React.FC = () => {
   };
   const handleDeleteMix = async (id: number) => {
     if (window.confirm('Delete this color mix?')) {
-      await axios.delete(`/color-mix-entries/${id}`);
-      fetchColorMixes();
+      try {
+        console.log('Deleting color mix:', id);
+        await axios.delete(`/api/color-mix-entries/${id}`);
+        await fetchColorMixes();
+      } catch (error) {
+        console.error('Error deleting color mix:', error);
+        alert('Error deleting color mix');
+      }
     }
   };
 
   // CRUD handlers for color formulas
   const handleAddFormula = async (data: any) => {
     try {
-      await axios.post('/color-mix-formulas', {
+      await axios.post('/api/color-mix-formulas', {
         ...data,
         createdBy: state.user?.id // ensure createdBy is set
       });
@@ -171,7 +191,7 @@ const ColorMixPage: React.FC = () => {
   };
   const handleUpdateFormula = async (id: number, data: any) => {
     try {
-      await axios.put(`/color-mix-formulas/${id}`, data);
+      await axios.put(`/api/color-mix-formulas/${id}`, data);
       setSelectedFormula(null);
       fetchFormulas();
     } catch (error) {
@@ -181,7 +201,7 @@ const ColorMixPage: React.FC = () => {
   const handleDeleteFormula = async (id: number) => {
     if (!window.confirm('Delete this color formula?')) return;
     try {
-      await axios.delete(`/color-mix-formulas/${id}`);
+      await axios.delete(`/api/color-mix-formulas/${id}`);
       fetchFormulas();
     } catch (error) {
       console.error('Error deleting color formula:', error);
@@ -194,25 +214,38 @@ const ColorMixPage: React.FC = () => {
     return mat ? mat.name : id;
   };
   const colorMixesWithMaterials = colorMixes.map(mix => {
+    console.log('Processing mix for display:', mix);
     let materialsStr = '';
     try {
-      let weights = mix.materialWeights;
-      if (typeof weights === 'string') weights = JSON.parse(weights);
-      if (Array.isArray(weights)) {
-        // Handle array format: [{ materialId, quantity }]
-        materialsStr = weights.map((mw: any) => `${getMaterialName(mw.materialId)}: ${mw.quantity}kg`).join(', ');
-      } else if (weights && typeof weights === 'object' && Object.keys(weights).length > 0) {
-        // Handle object format: { materialId: quantity, ... }
-        materialsStr = Object.entries(weights)
-          .map(([mid, qty]) => `${getMaterialName(mid)}: ${qty}kg`).join(', ');
+      // Use the materials array directly from the backend response
+      if (mix.materials && Array.isArray(mix.materials)) {
+        materialsStr = mix.materials
+          .map((m: any) => `${m.material_name}: ${m.quantity}kg`)
+          .join(', ');
       } else {
-        materialsStr = 'No materials';
+        // Fallback to parsing material_weights if materials array is not available
+        let weights = mix.material_weights;
+        if (typeof weights === 'string') weights = JSON.parse(weights);
+        if (Array.isArray(weights)) {
+          materialsStr = weights.map((mw: any) => `${getMaterialName(mw.materialId)}: ${mw.quantity}kg`).join(', ');
+        } else if (weights && typeof weights === 'object' && Object.keys(weights).length > 0) {
+          materialsStr = Object.entries(weights)
+            .map(([mid, qty]) => `${getMaterialName(mid)}: ${qty}kg`).join(', ');
+        } else {
+          materialsStr = 'No materials';
+        }
       }
     } catch (e) {
-      console.warn('Invalid materialWeights for mix', mix.id, mix.materialWeights, e);
+      console.warn('Invalid materialWeights for mix', mix.id, mix.material_weights, e);
       materialsStr = 'No materials';
     }
-    return { ...mix, materials: materialsStr };
+    const processed = { 
+      ...mix, 
+      materials: materialsStr,
+      formula_name: mix.formula_name || 'Unknown Formula'
+    };
+    console.log('Processed mix for display:', processed);
+    return processed;
   });
 
   // Render
@@ -228,9 +261,16 @@ const ColorMixPage: React.FC = () => {
       <Card>
         <DataTable
           columns={[
-            { header: 'Formula', accessor: 'formulaName' },
+            { 
+              header: 'Formula', 
+              accessor: 'formula_name',
+              cell: (value: any, row: any) => {
+                console.log('Rendering formula cell:', { value, row });
+                return value || 'Unknown Formula';
+              }
+            },
             { header: 'Materials', accessor: 'materials' },
-            { header: 'Color Required (g)', accessor: 'colorRequirement' },
+            { header: 'Color Required (g)', accessor: 'color_requirement' },
             {
               header: 'Actions',
               accessor: 'id',
@@ -276,7 +316,11 @@ const ColorMixPage: React.FC = () => {
                 }).join(', ');
               }
             } catch {}
-            return { ...f, materials: materialsStr };
+            // Fix: always show colorWeight (or color_weight) as a number
+            let colorWeight = f.colorWeight;
+            if (colorWeight === undefined && f.color_weight !== undefined) colorWeight = f.color_weight;
+            if (typeof colorWeight === 'string') colorWeight = Number(colorWeight);
+            return { ...f, materials: materialsStr, colorWeight: colorWeight };
           })}
           loading={false}
           emptyMessage="No formulas found."

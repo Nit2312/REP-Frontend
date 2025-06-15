@@ -28,7 +28,7 @@ const MouldsPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get('/moulds');
+      const response = await axios.get('/api/moulds');
       setMoulds(response.data);
     } catch (error: any) {
       console.error('Error fetching moulds:', error);
@@ -41,7 +41,7 @@ const MouldsPage: React.FC = () => {
   const handleAddMould = async (data: Partial<Mould>) => {
     try {
       setError(null);
-      const response = await axios.post('/moulds', data);
+      await axios.post('/api/moulds', data);
       setShowAddModal(false);
       fetchMoulds();
     } catch (error: any) {
@@ -53,7 +53,7 @@ const MouldsPage: React.FC = () => {
   const handleUpdateMould = async (id: number, data: Partial<Mould>) => {
     try {
       setError(null);
-      await axios.put(`/moulds/${id}`, data);
+      await axios.put(`/api/moulds/${id}`, data);
       setSelectedMould(null);
       fetchMoulds();
     } catch (error: any) {
@@ -63,11 +63,11 @@ const MouldsPage: React.FC = () => {
   };
 
   const handleDeleteMould = async (id: number) => {
-    if (!window.confirm('Are you sure you want to delete this mould?')) return;
+    if (!window.confirm('Delete this mould?')) return;
     
     try {
       setError(null);
-      await axios.delete(`/moulds/${id}`);
+      await axios.delete(`/api/moulds/${id}`);
       fetchMoulds();
     } catch (error: any) {
       console.error('Error deleting mould:', error);

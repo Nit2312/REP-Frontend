@@ -102,6 +102,21 @@ const initializeDatabase = async () => {
     `);
     console.log('[DB Init] Products table created/verified successfully');
 
+    // Create raw materials table
+    console.log('[DB Init] Creating/verifying raw materials table...');
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS raw_materials (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        quantity DECIMAL(10,2) NOT NULL,
+        unit VARCHAR(20) NOT NULL,
+        threshold DECIMAL(10,2) DEFAULT 0,
+        description TEXT,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('[DB Init] Raw materials table created/verified successfully');
+
     // Create hourly production logs table
     console.log('[DB Init] Creating/verifying hourly production logs table...');
     await pool.query(`

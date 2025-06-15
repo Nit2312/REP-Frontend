@@ -21,8 +21,8 @@ const MachinesPage: React.FC = () => {
   const fetchMachines = async () => {
     setLoading(true);
     try {
-      const res = await axios.get('/machines');
-      setMachines(res.data);
+      const response = await axios.get('/api/machines');
+      setMachines(response.data);
     } catch (error) {
       console.error('Error fetching machines:', error);
     } finally {
@@ -32,7 +32,7 @@ const MachinesPage: React.FC = () => {
 
   const handleAddMachine = async (data: any) => {
     try {
-      await axios.post('/machines', data);
+      await axios.post('/api/machines', data);
       setShowAddModal(false);
       fetchMachines();
     } catch (error) {
@@ -42,7 +42,7 @@ const MachinesPage: React.FC = () => {
 
   const handleUpdateMachine = async (id: number, data: any) => {
     try {
-      await axios.put(`/machines/${id}`, data);
+      await axios.put(`/api/machines/${id}`, data);
       setSelectedMachine(null);
       fetchMachines();
     } catch (error) {
@@ -53,7 +53,7 @@ const MachinesPage: React.FC = () => {
   const handleDeleteMachine = async (id: number) => {
     if (!window.confirm('Delete this machine?')) return;
     try {
-      await axios.delete(`/machines/${id}`);
+      await axios.delete(`/api/machines/${id}`);
       fetchMachines();
     } catch (error) {
       console.error('Error deleting machine:', error);

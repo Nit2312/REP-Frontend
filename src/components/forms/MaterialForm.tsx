@@ -28,15 +28,39 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ onSubmit, material }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!formData.name.trim() || formData.quantity === '' || isNaN(Number(formData.quantity)) || !formData.unit.trim()) {
-      setError('Name, quantity (number), and unit are required.');
+
+    // Validate required fields
+    if (!formData.name.trim()) {
+      setError(t('inventory.errors.nameRequired'));
       return;
     }
+    if (formData.quantity === '' || isNaN(Number(formData.quantity))) {
+      setError(t('inventory.errors.quantityRequired'));
+      return;
+    }
+    if (!formData.unit.trim()) {
+      setError(t('inventory.errors.unitRequired'));
+      return;
+    }
+
+    // Validate numeric fields
+    const quantity = Number(formData.quantity);
+    const threshold = formData.threshold === '' ? 0 : Number(formData.threshold);
+
+    if (quantity < 0) {
+      setError(t('inventory.errors.quantityPositive'));
+      return;
+    }
+    if (threshold < 0) {
+      setError(t('inventory.errors.thresholdPositive'));
+      return;
+    }
+
     onSubmit({
       ...formData,
-      quantity: Number(formData.quantity),
-      threshold: formData.threshold === '' ? 0 : Number(formData.threshold),
-      description: formData.description || '',
+      quantity,
+      threshold,
+      description: formData.description.trim(),
     });
   };
 
@@ -60,6 +84,8 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ onSubmit, material }) => {
         value={formData.quantity}
         onChange={handleChange}
         required
+        min="0"
+        step="any"
         fullWidth
       />
 
@@ -68,7 +94,7 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ onSubmit, material }) => {
         name="unit"
         label={t('inventory.unit')}
         options={[
-          { value: '', label: 'Select Unit' },
+          { value: '', label: t('inventory.selectUnit') },
           { value: 'kg', label: 'Kilograms (KG)' },
           { value: 'g', label: 'Grams (G)' },
           { value: 'l', label: 'Liters (L)' },
@@ -88,6 +114,8 @@ const MaterialForm: React.FC<MaterialFormProps> = ({ onSubmit, material }) => {
         label={t('inventory.threshold')}
         value={formData.threshold}
         onChange={handleChange}
+        min="0"
+        step="any"
         fullWidth
       />
 

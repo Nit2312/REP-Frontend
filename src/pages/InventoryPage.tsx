@@ -89,7 +89,7 @@ useEffect(() => {
   const fetchMaterials = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/materials');
+      const response = await axios.get('/api/materials');
       console.log('Fetched materials:', response);
       setMaterials(response.data);
     } catch (error) {
@@ -101,7 +101,7 @@ useEffect(() => {
 
   const fetchColorMixes = async () => {
     try {
-      const response = await axios.get('/color-mix-entries');
+      const response = await axios.get('/api/color-mix-entries');
       setColorMixes(response.data);
     } catch (error) {
       console.error('Error fetching color mixes:', error);
@@ -133,11 +133,44 @@ useEffect(() => {
     }
   };
 
+  const fetchInventory = async () => {
+    try {
+      const response = await axios.get('/api/inventory');
+      setInventory(response.data);
+    } catch (error) {
+      console.error('Error fetching inventory:', error);
+    }
+  };
 
+  const handleAddItem = async (data: any) => {
+    try {
+      await axios.post('/api/inventory', data);
+      setShowAddModal(false);
+      fetchInventory();
+    } catch (error) {
+      console.error('Error adding inventory item:', error);
+    }
+  };
 
+  const handleUpdateItem = async (id: number, data: any) => {
+    try {
+      await axios.put(`/api/inventory/${id}`, data);
+      setSelectedItem(null);
+      fetchInventory();
+    } catch (error) {
+      console.error('Error updating inventory item:', error);
+    }
+  };
 
-
-  
+  const handleDeleteItem = async (id: number) => {
+    if (!window.confirm('Delete this inventory item?')) return;
+    try {
+      await axios.delete(`/api/inventory/${id}`);
+      fetchInventory();
+    } catch (error) {
+      console.error('Error deleting inventory item:', error);
+    }
+  };
 
   const columns = [
     { header: t('inventory.name'), accessor: 'name' },
