@@ -1,8 +1,8 @@
 import axios from 'axios';
 
-// Create axios instance with default config
+// Use environment variable for API base URL, fallback to localhost for dev
 const instance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
   headers: {
     'Content-Type': 'application/json',
   },
