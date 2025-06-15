@@ -54,7 +54,9 @@ const UsersPage: React.FC = () => {
   const handleUpdateUser = async (id: number, data: any) => {
     try {
       setError(null);
-      await axios.put(`/users/${id}`, data);
+      // Always include userId from selectedUser if not present in data
+      const userIdToSend = data.userId || selectedUser?.userId || selectedUser?.user_id;
+      await axios.put(`/users/${id}`, { ...data, userId: userIdToSend });
       setSelectedUser(null);
       fetchUsers();
     } catch (error) {
