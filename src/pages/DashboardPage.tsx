@@ -119,7 +119,7 @@ const DashboardPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get('/api/dashboard/stats', { params: filter });
+      const response = await axios.get('/dashboard/stats', { params: filter });
       setDashboardData(response.data);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -132,10 +132,10 @@ const DashboardPage: React.FC = () => {
   const fetchDropdownData = async () => {
     try {
       const [machinesRes, mouldsRes, productsRes, workersRes] = await Promise.all([
-        axios.get('/api/machines'),
-        axios.get('/api/moulds'),
-        axios.get('/api/products'),
-        axios.get('/api/workers')
+        axios.get('/machines'),
+        axios.get('/moulds'),
+        axios.get('/products'),
+        axios.get('/workers')
       ]);
 
       setMachines(machinesRes.data);

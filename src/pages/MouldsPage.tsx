@@ -28,7 +28,7 @@ const MouldsPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get('/api/moulds');
+      const response = await axios.get('/moulds');
       setMoulds(response.data);
     } catch (error: any) {
       console.error('Error fetching moulds:', error);
@@ -41,7 +41,7 @@ const MouldsPage: React.FC = () => {
   const handleAddMould = async (data: Partial<Mould>) => {
     try {
       setError(null);
-      await axios.post('/api/moulds', data);
+      await axios.post('/moulds', data);
       setShowAddModal(false);
       fetchMoulds();
     } catch (error: any) {
@@ -53,7 +53,7 @@ const MouldsPage: React.FC = () => {
   const handleUpdateMould = async (id: number, data: Partial<Mould>) => {
     try {
       setError(null);
-      await axios.put(`/api/moulds/${id}`, data);
+      await axios.put(`/moulds/${id}`, data);
       setSelectedMould(null);
       fetchMoulds();
     } catch (error: any) {
@@ -67,7 +67,7 @@ const MouldsPage: React.FC = () => {
     
     try {
       setError(null);
-      await axios.delete(`/api/moulds/${id}`);
+      await axios.delete(`/moulds/${id}`);
       fetchMoulds();
     } catch (error: any) {
       console.error('Error deleting mould:', error);
@@ -156,4 +156,4 @@ const MouldsPage: React.FC = () => {
   );
 };
 
-export default MouldsPage; 
+export default MouldsPage;

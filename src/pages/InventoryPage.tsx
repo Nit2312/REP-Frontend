@@ -94,7 +94,7 @@ useEffect(() => {
   const fetchMaterials = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/materials');
+      const response = await axios.get('/materials');
       console.log('Fetched materials:', response);
       setMaterials(response.data);
     } catch (error) {
@@ -106,7 +106,7 @@ useEffect(() => {
 
   const fetchColorMixes = async () => {
     try {
-      const response = await axios.get('/api/color-mix-entries');
+      const response = await axios.get('/color-mix-entries');
       setColorMixes(response.data);
     } catch (error) {
       console.error('Error fetching color mixes:', error);
@@ -115,7 +115,7 @@ useEffect(() => {
 
   const handleAddMaterial = async (data: any) => {
     try {
-      await axios.post('/api/materials', data);
+      await axios.post('/materials', data);
       setShowAddModal(false);
       fetchMaterials();
     } catch (error) {
@@ -127,7 +127,7 @@ useEffect(() => {
   const handleDeleteMaterial = async (materialId: number) => {
     if (window.confirm(t('inventory.confirmDelete'))) {
       try {
-        await axios.delete(`/api/materials/${materialId}`);
+        await axios.delete(`/materials/${materialId}`);
         fetchMaterials();
       } catch (error: any) {
         alert(error?.response?.data?.message || 'Error deleting material');
@@ -223,7 +223,7 @@ useEffect(() => {
             material={selectedMaterial}
             onSubmit={async (data) => {
               try {
-                await axios.put(`/api/materials/${(selectedMaterial as any).id}`, data);
+                await axios.put(`/materials/${(selectedMaterial as any).id}`, data);
                 setSelectedMaterial(null);
                 fetchMaterials();
               } catch (error) {

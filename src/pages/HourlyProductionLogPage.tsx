@@ -45,7 +45,7 @@ const HourlyProductionLogPage: React.FC = () => {
     setLoading(true);
     try {
       console.log('Fetching logs for task ID:', taskId);
-      const res = await axios.get(`/api/hourly-production-logs/task/${taskId}`);
+      const res = await axios.get(`/hourly-production-logs/task/${taskId}`);
       console.log('API Response:', res.data);
       
       // Map backend fields to frontend fields for this page only
@@ -156,7 +156,7 @@ const HourlyProductionLogPage: React.FC = () => {
           wastage_weight: entry.wastage_weight ? Number(entry.wastage_weight) : null,
           remarks: entry.remarks || ''
         };
-        return axios.post('/api/hourly-production-logs', data);
+        return axios.post('/hourly-production-logs', data);
       });
 
       await Promise.all(submitPromises);
@@ -176,7 +176,7 @@ const HourlyProductionLogPage: React.FC = () => {
 
   const handleUpdate = async (id: number, data: Partial<HourlyProductionLog>) => {
     try {
-      await axios.put(`/api/hourly-production-logs/${id}`, {
+      await axios.put(`/hourly-production-logs/${id}`, {
         hour: extractHourHHMM(data.hour), // Robust time format
         date: data.date,
         total_pieces: data.totalPieces,

@@ -89,8 +89,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('[Auth] Attempting login for:', { userId, name });
     dispatch({ type: 'LOGIN_REQUEST' });
     try {
-      console.log('[Auth] Sending login request to:', axios.defaults.baseURL + '/api/auth/login');
-      const response = await axios.post('/api/auth/login', { userId, name });
+      // Use correct endpoint: baseURL + '/auth/login'
+      console.log('[Auth] Sending login request to:', axios.defaults.baseURL + '/auth/login');
+      const response = await axios.post('/auth/login', { userId, name });
       console.log('[Auth] Login response:', response.data);
       const { token, user } = response.data;
       if (token && user) {

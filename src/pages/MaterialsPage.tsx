@@ -37,7 +37,7 @@ const MaterialsPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get('/api/materials');
+      const response = await axios.get('/materials');
       setMaterials(response.data);
     } catch (error: any) {
       console.error('Error fetching materials:', error);
@@ -50,7 +50,7 @@ const MaterialsPage: React.FC = () => {
   const handleAddMaterial = async (data: Partial<Material>) => {
     try {
       setError(null);
-      await axios.post('/api/materials', data);
+      await axios.post('/materials', data);
       setShowAddModal(false);
       fetchMaterials();
     } catch (error: any) {
@@ -62,7 +62,7 @@ const MaterialsPage: React.FC = () => {
   const handleUpdateMaterial = async (id: number, data: Partial<Material>) => {
     try {
       setError(null);
-      await axios.put(`/api/materials/${id}`, data);
+      await axios.put(`/materials/${id}`, data);
       setSelectedMaterial(null);
       fetchMaterials();
     } catch (error: any) {
@@ -76,7 +76,7 @@ const MaterialsPage: React.FC = () => {
     
     try {
       setError(null);
-      await axios.delete(`/api/materials/${id}`);
+      await axios.delete(`/materials/${id}`);
       fetchMaterials();
     } catch (error: any) {
       console.error('Error deleting material:', error);
