@@ -19,56 +19,31 @@ const LoginPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('[Login] Form submission started', { userId, name });
     setFormError('');
-    
     if (!userId.trim() || !name.trim()) {
-      console.log('[Login] Form validation failed - empty fields');
       setFormError('User ID and Name are required');
       return;
     }
-    
     try {
-      console.log('[Login] Attempting login...');
       await login(userId, name);
-      
-      // Wait for state to be updated
-      const checkState = setInterval(() => {
-        if (state.user) {
-          clearInterval(checkState);
-          console.log('[Login] Login successful, current state:', state);
-          
-          if (state.user.role === 'worker') {
-            console.log('[Login] Redirecting to tasks page for worker');
-            navigate('/tasks');
-          } else {
-            console.log('[Login] Redirecting to dashboard for admin/super_admin');
-            navigate('/dashboard');
-          }
-        } else if (state.error) {
-          clearInterval(checkState);
-          console.error('[Login] Login failed:', state.error);
-          setFormError(state.error);
-        }
-      }, 100);
-
-      // Clear interval after 5 seconds to prevent infinite checking
-      setTimeout(() => {
-        clearInterval(checkState);
-        if (!state.user && !state.error) {
-          console.error('[Login] Login timeout - no response received');
-          setFormError('Login request timed out. Please try again.');
-        }
-      }, 5000);
     } catch (error) {
-      console.error('[Login] Login error:', error);
-      if (error instanceof Error) {
-        setFormError(error.message);
-      } else {
-        setFormError(t('auth.loginError'));
-      }
+      setFormError('Login failed. Please try again.');
+      return;
     }
   };
+
+  // React to login state changes for navigation
+  React.useEffect(() => {
+    if (state.user) {
+      if (state.user.role === 'worker') {
+        navigate('/tasks');
+      } else {
+        navigate('/dashboard');
+      }
+    } else if (state.error) {
+      setFormError(state.error);
+    }
+  }, [state.user, state.error, navigate]);
 
   const languages = [
     { code: 'en', name: 'English' },

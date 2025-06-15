@@ -48,6 +48,12 @@ interface TaskFormData {
   target: number;
 }
 
+interface Option {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+}
+
 const TasksPage: React.FC = () => {
   const { t } = useTranslation();
   const { state } = useAuth();
@@ -55,6 +61,9 @@ const TasksPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<TaskFormData>({
     name: '',
     description: '',
@@ -73,6 +82,8 @@ const TasksPage: React.FC = () => {
   const [workers, setWorkers] = useState<Array<{ id: number; name: string }>>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const navigate = useNavigate();
+  const [updatingStatus, setUpdatingStatus] = useState<number | null>(null);
+  const [deletingTask, setDeletingTask] = useState<number | null>(null);
 
   useEffect(() => {
     fetchTasks();
@@ -110,11 +121,36 @@ const TasksPage: React.FC = () => {
 
   const fetchTasks = async () => {
     try {
-      const response = await axios.get('/api/tasks');
-      setTasks(response.data);
-      setError(null);
+      setLoading(true);
+      const res = await axios.get('/api/tasks');
+      console.log('API Response:', res.data);
+      
+      // Filter tasks based on user role
+      let filteredTasks = res.data;
+      if (state.user?.role === 'worker') {
+        filteredTasks = res.data.filter((task: Task) => {
+          // Handle both string and number worker_id
+          const taskWorkerId = String(task.worker_id);
+          const userId = state.user ? String(state.user.userId) : '';
+          return taskWorkerId === userId;
+        });
+      }
+      
+      if (filteredTasks && filteredTasks.length > 0) {
+        console.log('Sample task with names:', {
+          id: filteredTasks[0].id,
+          name: filteredTasks[0].name,
+          machine: { id: filteredTasks[0].machine_id, name: filteredTasks[0].machine_name },
+          mould: { id: filteredTasks[0].mould_id, name: filteredTasks[0].mould_name },
+          product: { id: filteredTasks[0].product_id, name: filteredTasks[0].product_name },
+          worker: { id: filteredTasks[0].worker_id, name: filteredTasks[0].worker_name },
+          colorMix: { id: filteredTasks[0].color_mix_id, name: filteredTasks[0].color_mix_name }
+        });
+      }
+      setTasks(filteredTasks);
     } catch (err) {
-      setError('Failed to fetch tasks');
+      console.error('Error fetching tasks:', err);
+      toast.error('Failed to fetch tasks');
     } finally {
       setLoading(false);
     }
@@ -140,12 +176,57 @@ const TasksPage: React.FC = () => {
     }
   };
 
+  const filteredTasks = tasks.filter(task => {
+    const matchesSearch = task.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         task.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         task.machine_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         task.mould_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         task.product_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         task.worker_name?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
+    
     try {
+      // Validate required fields
+      if (!formData.name.trim()) {
+        toast.error('Task name is required');
+        return;
+      }
+      if (!formData.machine_id) {
+        toast.error('Machine is required');
+        return;
+      }
+      if (!formData.mould_id) {
+        toast.error('Mould is required');
+        return;
+      }
+      if (!formData.product_id) {
+        toast.error('Product is required');
+        return;
+      }
+      if (!formData.color_mix_id) {
+        toast.error('Color mix is required');
+        return;
+      }
+      if (!formData.worker_id) {
+        toast.error('Worker is required');
+        return;
+      }
+      if (formData.target <= 0) {
+        toast.error('Target must be greater than 0');
+        return;
+      }
+
       const data = {
-        name: formData.name,
-        description: formData.description,
+        name: formData.name.trim(),
+        description: formData.description.trim(),
         machine_id: Number(formData.machine_id),
         mould_id: Number(formData.mould_id),
         product_id: Number(formData.product_id),
@@ -180,16 +261,28 @@ const TasksPage: React.FC = () => {
     } catch (err: any) {
       console.error('Error saving task:', err);
       toast.error(err.response?.data?.message || 'Failed to save task');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleStatusUpdate = async (taskId: number, newStatus: string) => {
+    // Validate status
+    const validStatuses = ['pending', 'in_progress', 'completed', 'cancelled'];
+    if (!validStatuses.includes(newStatus)) {
+      toast.error('Invalid status');
+      return;
+    }
+
+    setUpdatingStatus(taskId);
     try {
       await axios.put(`/api/tasks/${taskId}`, { status: newStatus });
       toast.success('Task status updated successfully');
       fetchTasks();
     } catch (err) {
       toast.error('Failed to update task status');
+    } finally {
+      setUpdatingStatus(null);
     }
   };
 
@@ -199,13 +292,17 @@ const TasksPage: React.FC = () => {
   };
 
   const handleDeleteTask = async (id: number) => {
-    if (!window.confirm('Are you sure you want to delete this task?')) return;
+    if (!window.confirm('Are you sure you want to delete this task? This action cannot be undone.')) return;
+    
+    setDeletingTask(id);
     try {
       await axios.delete(`/api/tasks/${id}`);
-      toast.success('Task deleted');
+      toast.success('Task deleted successfully');
       fetchTasks();
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to delete task');
+    } finally {
+      setDeletingTask(null);
     }
   };
 
@@ -215,6 +312,39 @@ const TasksPage: React.FC = () => {
     } else {
       navigate(`/production-logs/${taskId}`);
     }
+  };
+
+  const calculateProgress = (completed: number, target: number) => {
+    if (!target) return 0;
+    const progress = (completed / target) * 100;
+    return Math.min(Math.round(progress), 100);
+  };
+
+  const getProgressColor = (progress: number) => {
+    if (progress >= 100) return 'bg-green-500';
+    if (progress >= 75) return 'bg-blue-500';
+    if (progress >= 50) return 'bg-yellow-500';
+    if (progress >= 25) return 'bg-orange-500';
+    return 'bg-red-500';
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'in_progress':
+        return 'bg-blue-100 text-blue-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const formatStatus = (status: string) => {
+    return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   };
 
   const columns = [
@@ -227,25 +357,15 @@ const TasksPage: React.FC = () => {
     { header: 'Target', accessor: 'target' },
     { header: 'Completed', accessor: 'completed_pieces' },
     { header: 'Progress', accessor: 'progress', cell: (row: Task) => {
-      const progress = (row.completed_pieces / row.target) * 100;
-      let colorClass = 'bg-red-500'; // Default color for low progress
-      
-      if (progress >= 100) {
-        colorClass = 'bg-green-500'; // Completed
-      } else if (progress >= 75) {
-        colorClass = 'bg-green-400'; // Good progress
-      } else if (progress >= 50) {
-        colorClass = 'bg-yellow-500'; // Moderate progress
-      } else if (progress >= 25) {
-        colorClass = 'bg-orange-500'; // Fair progress
-      }
+      const progress = calculateProgress(row.completed_pieces, row.target);
+      const progressColor = getProgressColor(progress);
       
       return (
         <div className="relative w-full">
           <div className="w-full bg-gray-200 rounded-full h-2.5">
             <div 
-              className={`${colorClass} h-2.5 rounded-full transition-all duration-300`}
-              style={{ width: `${Math.min(progress, 100)}%` }}
+              className={`${progressColor} h-2.5 rounded-full transition-all duration-300`}
+              style={{ width: `${progress}%` }}
             ></div>
           </div>
           <span className="text-xs text-gray-600 mt-1">
@@ -266,7 +386,7 @@ const TasksPage: React.FC = () => {
           {t('Task')}
         </h1>
         <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-          {state.user?.role === 'super_admin' && (
+          {state.user?.role !== 'worker' && (
             <Button
               variant="primary"
               onClick={() => setShowAddModal(true)}
@@ -280,50 +400,197 @@ const TasksPage: React.FC = () => {
             variant="outline"
             onClick={fetchTasks}
             className="flex items-center"
+            disabled={loading}
           >
-            <RefreshCw size={16} className="mr-2" />
+            <RefreshCw size={16} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
             {t('Refresh')}
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {tasks.map((task) => (
-          <Card key={task.id} className="flex flex-col justify-between h-full">
-            <div>
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <h2 className="text-lg font-semibold text-blue-700">{task.name}</h2>
-                  <p className="text-sm text-gray-500 mb-1">{task.description}</p>
+      {/* Search and Filter Section */}
+      <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Input
+          id="task-search"
+          type="text"
+          placeholder="Search tasks..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full"
+        />
+        <Select
+          id="status-filter"
+          value={statusFilter}
+          onChange={(value) => setStatusFilter(value)}
+          options={[
+            { value: 'all', label: 'All Status' },
+            { value: 'pending', label: 'Pending' },
+            { value: 'in_progress', label: 'In Progress' },
+            { value: 'completed', label: 'Completed' },
+            { value: 'cancelled', label: 'Cancelled' }
+          ]}
+          className="w-full"
+        />
+      </div>
+
+      {/* Loading State */}
+      {loading && (
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative mb-6" role="alert">
+          <strong className="font-bold">Error: </strong>
+          <span className="block sm:inline">{error}</span>
+        </div>
+      )}
+
+      {/* No Results State */}
+      {!loading && !error && filteredTasks.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-gray-500 text-lg">No tasks found</p>
+          {searchQuery && (
+            <p className="text-gray-400 text-sm mt-2">Try adjusting your search or filters</p>
+          )}
+        </div>
+      )}
+
+      {/* Task Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredTasks.map((task) => {
+          const progress = calculateProgress(task.completed_pieces, task.target);
+          const progressColor = getProgressColor(progress);
+          const statusColor = getStatusColor(task.status);
+          
+          return (
+            <Card key={task.id} className="flex flex-col justify-between h-full hover:shadow-lg transition-shadow duration-200">
+              <div>
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-lg font-semibold text-gray-900 truncate" title={task.name}>
+                      {task.name}
+                    </h2>
+                    {task.description && (
+                      <p className="text-sm text-gray-500 mt-1 line-clamp-2" title={task.description}>
+                        {task.description}
+                      </p>
+                    )}
+                  </div>
+                  {state.user?.role !== 'worker' && (
+                    <OptionsMenu
+                      options={[
+                        { 
+                          label: 'Edit', 
+                          onClick: () => handleEditTask(task)
+                        },
+                        { 
+                          label: deletingTask === task.id ? 'Deleting...' : 'Delete', 
+                          onClick: () => handleDeleteTask(task.id)
+                        }
+                      ]}
+                    />
+                  )}
                 </div>
-                <OptionsMenu
-                  options={[
-                    { label: 'Edit', onClick: () => handleEditTask(task) },
-                    { label: 'Delete', onClick: () => handleDeleteTask(task.id) }
-                  ]}
-                />
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="min-w-0">
+                      <span className="text-xs font-medium text-gray-500 block mb-1">Machine</span>
+                      <p className="text-sm font-medium text-gray-900 truncate" title={task.machine_name || 'Not assigned'}>
+                        {task.machine_name || 'Not assigned'}
+                      </p>
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-xs font-medium text-gray-500 block mb-1">Mould</span>
+                      <p className="text-sm font-medium text-gray-900 truncate" title={task.mould_name || 'Not assigned'}>
+                        {task.mould_name || 'Not assigned'}
+                      </p>
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-xs font-medium text-gray-500 block mb-1">Product</span>
+                      <p className="text-sm font-medium text-gray-900 truncate" title={task.product_name || 'Not assigned'}>
+                        {task.product_name || 'Not assigned'}
+                      </p>
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-xs font-medium text-gray-500 block mb-1">Worker</span>
+                      <p className="text-sm font-medium text-gray-900 truncate" title={task.worker_name || 'Not assigned'}>
+                        {task.worker_name || 'Not assigned'}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-xs font-medium text-gray-500 block mb-1">Status</span>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColor}`}>
+                        {formatStatus(task.status)}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-xs font-medium text-gray-500 block mb-1">Target</span>
+                      <p className="text-sm font-medium text-gray-900">{(task.target || 0).toLocaleString()}</p>
+                    </div>
+                  </div>
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs font-medium text-gray-500">Progress</span>
+                      <span className="text-xs font-medium text-gray-900">{progress}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2.5">
+                      <div 
+                        className={`h-2.5 rounded-full ${progressColor} transition-all duration-300`}
+                        style={{ width: `${progress}%` }}
+                        role="progressbar"
+                        aria-valuenow={progress}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                      ></div>
+                    </div>
+                    <p className="text-xs text-gray-600 mt-1">
+                      {(task.completed_pieces || 0).toLocaleString()} / {(task.target || 0).toLocaleString()} pieces
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div className="mb-2">
-                <span className="inline-block bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded mr-2">Machine: {task.machine_name}</span>
-                <span className="inline-block bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded mr-2">Mould: {task.mould_name}</span>
-                <span className="inline-block bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded mr-2">Product: {task.product_name}</span>
-                <span className="inline-block bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded mr-2">Worker: {task.worker_name}</span>
-                <span className="inline-block bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded mr-2">Status: {task.status}</span>
-                <span className="inline-block bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded">Target: {task.target}</span>
+              <div className="flex justify-end mt-4 pt-3 border-t border-gray-100">
+                <div className="flex flex-col sm:flex-row gap-2 w-full">
+                  {state.user?.role !== 'worker' && (
+                    <Select
+                      id={`task-status-${task.id}`}
+                      value={task.status}
+                      onChange={(value) => handleStatusUpdate(task.id, value)}
+                      options={[
+                        { value: 'pending', label: 'Pending' },
+                        { value: 'in_progress', label: 'In Progress' },
+                        { value: 'completed', label: 'Completed' },
+                        { value: 'cancelled', label: 'Cancelled' }
+                      ]}
+                      className="w-full sm:w-auto"
+                      disabled={updatingStatus === task.id}
+                    />
+                  )}
+                  <Button 
+                    variant="primary" 
+                    size="sm" 
+                    onClick={() => goToHourlyProduction(task.id)}
+                    className="w-full sm:w-auto"
+                    disabled={updatingStatus === task.id || deletingTask === task.id}
+                  >
+                    {updatingStatus === task.id ? 'Updating...' : 'Go to Hourly Production'}
+                  </Button>
+                </div>
               </div>
-            </div>
-            <div className="flex justify-end mt-2">
-              <Button variant="primary" size="sm" onClick={() => goToHourlyProduction(task.id)}>
-                Go to Hourly Production
-              </Button>
-            </div>
-          </Card>
-        ))}
+            </Card>
+          );
+        })}
       </div>
 
       <Modal
         isOpen={showAddModal || !!selectedTask}
-        onClose={() => { setShowAddModal(false); setSelectedTask(null); }}
+        onClose={() => {
+          setShowAddModal(false);
+          setSelectedTask(null);
+        }}
         title={selectedTask ? t('EditTask') : t('CreateTask')}
         size="lg"
       >
@@ -451,25 +718,37 @@ const TasksPage: React.FC = () => {
               id="target"
               label={t('target')}
               type="number"
-              min="1"
               value={formData.target.toString()}
               onChange={(e) => setFormData({ ...formData, target: Number(e.target.value) })}
               required
               fullWidth
+              min="0"
               placeholder="Enter target pieces"
             />
           </div>
 
-          <div className="flex justify-end space-x-3 pt-4 border-t">
+          <div className="mt-6 flex justify-end space-x-3 border-t pt-4">
             <Button
               type="button"
               variant="outline"
-              onClick={() => { setShowAddModal(false); setSelectedTask(null); }}
+              onClick={() => {
+                setShowAddModal(false);
+                setSelectedTask(null);
+              }}
+              disabled={isSubmitting}
             >
-              {t('common.cancel')}
+              Cancel
             </Button>
-            <Button type="submit" variant="primary">
-              {selectedTask ? t('updateTask') : t('createTask')}
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={isSubmitting}
+              className="flex items-center"
+            >
+              {isSubmitting && (
+                <RefreshCw size={16} className="animate-spin mr-2" />
+              )}
+              {selectedTask ? 'Update Task' : 'Create Task'}
             </Button>
           </div>
         </form>

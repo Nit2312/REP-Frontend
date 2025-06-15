@@ -2,13 +2,10 @@ import axios from 'axios';
 
 // Create axios instance with default config
 const instance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL
-    ? `${import.meta.env.VITE_API_URL}`
-    : 'https://rep-backend.onrender.com',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true
 });
 
 // Request interceptor
@@ -59,10 +56,10 @@ instance.interceptors.response.use(
       console.error('Request setup error:', error.message);
     }
 
-    if (error.response?.status === 401) {
-      console.log('[API] Unauthorized access, redirecting to login');
+    if (error.response?.status === 403 || error.response?.status === 401) {
       localStorage.removeItem('token');
-      window.location.href = '/login';
+      // Optionally, you can redirect to login page instead of home
+      // window.location.href = '/login';
     }
 
     return Promise.reject(error);

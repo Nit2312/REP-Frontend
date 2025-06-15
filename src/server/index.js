@@ -846,9 +846,22 @@ app.get('/api/tasks', async (req, res) => {
       params.push(status);
     }
 
-    const where = whereClauses.length > 0 ? 'WHERE ' + whereClauses.join(' AND ') : '';
+    const whereClause = whereClauses.length > 0 ? 'WHERE ' + whereClauses.join(' AND ') : '';
     const query = `
-      SELECT t.*, 
+      SELECT 
+        t.id,
+        t.name,
+        t.description,
+        t.machine_id,
+        t.mould_id,
+        t.product_id,
+        t.color_mix_id,
+        t.worker_id,
+        t.target,
+        t.status,
+        t.created_by,
+        t.created_at,
+        t.updated_at,
         m.name as machine_name,
         mo.name as mould_name,
         p.name as product_name,
@@ -861,14 +874,32 @@ app.get('/api/tasks', async (req, res) => {
       LEFT JOIN products p ON t.product_id = p.id
       LEFT JOIN color_mix_formulas cm ON t.color_mix_id = cm.id
       LEFT JOIN users u ON t.worker_id = u.id
-      LEFT JOIN hourly_production_logs hpl ON t.id = hpl.id
-      ${where}
-      GROUP BY t.id, m.name, mo.name, p.name, cm.name, u.name
+      LEFT JOIN hourly_production_logs hpl ON t.id = hpl.task_id
+      ${whereClause}
+      GROUP BY 
+        t.id, t.name, t.description, t.machine_id, t.mould_id, t.product_id, 
+        t.color_mix_id, t.worker_id, t.status, t.target, t.created_by, t.created_at, 
+        t.updated_at, m.name, mo.name, p.name, cm.name, u.name
       ORDER BY t.created_at DESC
     `;
+
+    console.log('Executing query:', query);
+    console.log('With parameters:', params);
     const result = await pool.query(query, params);
     const tasks = result.rows;
     console.log(`[GET /api/tasks] Successfully fetched ${tasks.length} tasks`);
+    if (tasks.length > 0) {
+      console.log('[GET /api/tasks] Sample task data:', JSON.stringify(tasks[0], null, 2));
+      // Add detailed logging for each related field
+      const task = tasks[0];
+      console.log('[GET /api/tasks] Related data for sample task:', {
+        machine: { id: task.machine_id, name: task.machine_name },
+        mould: { id: task.mould_id, name: task.mould_name },
+        product: { id: task.product_id, name: task.product_name },
+        worker: { id: task.worker_id, name: task.worker_name },
+        colorMix: { id: task.color_mix_id, name: task.color_mix_name }
+      });
+    }
     res.status(200).json(tasks);
   } catch (error) {
     console.error('[GET /api/tasks] Error fetching tasks:', error);

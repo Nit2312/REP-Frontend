@@ -44,9 +44,32 @@ const HourlyProductionLogPage: React.FC = () => {
   const fetchLogs = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`/hourly-production-logs/${taskId}`);
-      setLogs(res.data);
+      console.log('Fetching logs for task ID:', taskId);
+      const res = await axios.get(`/api/hourly-production-logs/task/${taskId}`);
+      console.log('API Response:', res.data);
+      
+      // Map backend fields to frontend fields for this page only
+      const mappedLogs = res.data.map((log: any) => {
+        console.log('Mapping log:', log);
+        return {
+          id: log.id,
+          taskId: log.task_id,
+          hour: log.hour,
+          totalPieces: log.total_pieces,
+          perfectPieces: log.perfect_pieces,
+          defectPieces: log.defect_pieces,
+          date: log.date,
+          createdAt: log.created_at,
+          defective_weight: log.defective_weight,
+          wastage_weight: log.wastage_weight,
+          perfect_weight: log.perfect_weight,
+          remarks: log.remarks
+        };
+      });
+      console.log('Mapped logs:', mappedLogs);
+      setLogs(mappedLogs);
     } catch (err) {
+      console.error('Error fetching logs:', err);
       toast.error('Failed to fetch logs');
     } finally {
       setLoading(false);
@@ -122,19 +145,18 @@ const HourlyProductionLogPage: React.FC = () => {
       // Submit each entry as a separate log
       const submitPromises = entries.map(async (entry) => {
         const data = {
-          taskId: Number(taskId),
-          hour: sharedHour,
+          task_id: Number(taskId),
+          hour: extractHourHHMM(sharedHour), // Robust time format
           date: sharedDate,
-          totalPieces: entry.perfectPieces + entry.defectPieces,
-          perfectPieces: entry.perfectPieces,
-          defectPieces: entry.defectPieces,
-          perfect_weight: entry.perfect_weight === '' ? null : Number(entry.perfect_weight),
-          defective_weight: entry.defective_weight === '' ? null : Number(entry.defective_weight),
-          wastage_weight: entry.wastage_weight === '' ? null : Number(entry.wastage_weight),
+          perfect_pieces: entry.perfectPieces,
+          defect_pieces: entry.defectPieces,
+          total_pieces: entry.perfectPieces + entry.defectPieces,
+          perfect_weight: entry.perfect_weight ? Number(entry.perfect_weight) : null,
+          defective_weight: entry.defective_weight ? Number(entry.defective_weight) : null,
+          wastage_weight: entry.wastage_weight ? Number(entry.wastage_weight) : null,
           remarks: entry.remarks || ''
         };
-
-        return axios.post('/hourly-production-logs', data);
+        return axios.post('/api/hourly-production-logs', data);
       });
 
       await Promise.all(submitPromises);
@@ -146,29 +168,30 @@ const HourlyProductionLogPage: React.FC = () => {
       
       toast.success('Production logs added successfully');
       fetchLogs();
-    } catch (err) {
-      toast.error('Failed to save production logs');
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || 'Failed to save production logs';
+      toast.error(msg);
     }
   };
 
   const handleUpdate = async (id: number, data: Partial<HourlyProductionLog>) => {
     try {
-      await axios.put(`/hourly-production-logs/${id}`, {
-        hour: data.hour,
+      await axios.put(`/api/hourly-production-logs/${id}`, {
+        hour: extractHourHHMM(data.hour), // Robust time format
         date: data.date,
-        totalPieces: data.totalPieces,
-        perfectPieces: data.perfectPieces,
-        defectPieces: data.defectPieces,
+        total_pieces: data.totalPieces,
+        perfect_pieces: data.perfectPieces,
+        defect_pieces: data.defectPieces,
         perfect_weight: data.perfect_weight,
         defective_weight: data.defective_weight,
         wastage_weight: data.wastage_weight,
         remarks: data.remarks || ''
       });
-      
       toast.success('Production log updated successfully');
       fetchLogs();
-    } catch (err) {
-      toast.error('Failed to update production log');
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || 'Failed to update production log';
+      toast.error(msg);
     }
   };
 
@@ -180,22 +203,6 @@ const HourlyProductionLogPage: React.FC = () => {
     } catch (err) {
       toast.error('Failed to delete production log');
     }
-  };
-
-  const handleEdit = (log: HourlyProductionLog) => {
-    setFormData({
-      id: log.id,
-      hour: log.hour,
-      totalPieces: log.totalPieces,
-      perfectPieces: log.perfectPieces,
-      defectPieces: log.defectPieces,
-      date: log.date,
-      perfect_weight: log.perfect_weight?.toString() || '',
-      defective_weight: log.defective_weight?.toString() || '',
-      wastage_weight: log.wastage_weight?.toString() || '',
-      remarks: log.remarks || ''
-    });
-    setShowAddModal(true);
   };
 
   const handleModalClose = () => {
@@ -226,7 +233,7 @@ const HourlyProductionLogPage: React.FC = () => {
       if (formData.id) {
         // Update existing log
         await handleUpdate(formData.id, {
-          hour: sharedHour,
+          hour: extractHourHHMM(sharedHour),
           date: sharedDate,
           totalPieces: formData.perfectPieces + formData.defectPieces,
           perfectPieces: formData.perfectPieces,
@@ -245,6 +252,12 @@ const HourlyProductionLogPage: React.FC = () => {
       toast.error(formData.id ? 'Failed to update log' : 'Failed to save log');
     }
   };
+
+  // Utility to extract valid HH:mm from any string
+  function extractHourHHMM(hourStr: string = ''): string {
+    const match = hourStr.match(/\b\d{2}:\d{2}\b/);
+    return match ? match[0] : '';
+  }
 
   return (
     <Layout>
@@ -438,53 +451,92 @@ const HourlyProductionLogPage: React.FC = () => {
           </div>
         </Card>
 
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Previous Logs</h2>
+        {/* --- UI IMPROVEMENTS FOR MOBILE --- */}
+        {/* Show vertical card list for logs only on mobile (sm:hidden) */}
+        <Card className="mt-6 sm:hidden">
+          <h2 className="text-xl font-bold mb-2">Production Logs</h2>
+          <div className="flex flex-col space-y-4">
+            {logs.length === 0 && <div className="text-gray-500">No logs found.</div>}
+            {logs.map((log, idx) => (
+              <div key={log.id || idx} className="bg-white rounded-lg shadow p-4 flex flex-col space-y-1 border border-gray-200">
+                <div className="flex justify-between text-sm">
+                  <span className="font-semibold">Hour:</span> <span>{log.hour}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="font-semibold">Date:</span> <span>{log.date}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="font-semibold">Perfect Pieces:</span> <span>{log.perfectPieces}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="font-semibold">Defect Pieces:</span> <span>{log.defectPieces}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="font-semibold">Total Pieces:</span> <span>{log.totalPieces}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="font-semibold">Perfect Weight (kg):</span> <span>{log.perfect_weight ?? '-'}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="font-semibold">Defective Weight (kg):</span> <span>{log.defective_weight ?? '-'}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="font-semibold">Wastage Weight (kg):</span> <span>{log.wastage_weight ?? '-'}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="font-semibold">Remarks:</span> <span>{log.remarks || '-'}</span>
+                </div>
+              </div>
+            ))}
           </div>
-          {loading ? (
-            <div className="p-6 text-center text-gray-500">Loading...</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hour</th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Perfect</th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Defect</th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Perfect Weight (kg)</th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Defective Weight (kg)</th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Wastage Weight (kg)</th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Remarks</th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Logged At</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {logs.map(log => (
-                    <tr key={log.id} className="hover:bg-gray-50">
-                      <td className="px-3 py-3 text-sm text-gray-900">{log.hour}</td>
-                      <td className="px-3 py-3 text-sm text-gray-900">{log.date}</td>
-                      <td className="px-3 py-3 text-sm text-gray-900">{log.perfectPieces}</td>
-                      <td className="px-3 py-3 text-sm text-gray-900">{log.defectPieces}</td>
-                      <td className="px-3 py-3 text-sm text-gray-900">{log.totalPieces}</td>
-                      <td className="px-3 py-3 text-sm text-gray-900">{log.perfect_weight ?? '-'}</td>
-                      <td className="px-3 py-3 text-sm text-gray-900">{log.defective_weight ?? '-'}</td>
-                      <td className="px-3 py-3 text-sm text-gray-900">{log.wastage_weight ?? '-'}</td>
-                      <td className="px-3 py-3 text-sm text-gray-900 max-w-xs truncate" title={log.remarks || ''}>
-                        {log.remarks || '-'}
-                      </td>
-                      <td className="px-3 py-3 text-sm text-gray-900">
-                        {log.createdAt ? new Date(log.createdAt).toLocaleString() : '-'}
-                      </td>
+        </Card>
+        {/* Show table for logs on tablet/desktop only (hidden on mobile) */}
+        <Card className="mb-6 hidden sm:block">
+          <div className="p-4 sm:p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Production Logs</h2>
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hour</th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Perfect Pieces</th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Defect Pieces</th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Pieces</th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Perfect Weight (kg)</th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Defective Weight (kg)</th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Wastage Weight (kg)</th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Remarks</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {logs.length === 0 && (
+                      <tr>
+                        <td colSpan={9} className="text-center text-gray-500 py-4">No logs found.</td>
+                      </tr>
+                    )}
+                    {logs.map((log, idx) => (
+                      <tr key={log.id || idx}>
+                        <td className="px-3 py-2">{log.hour}</td>
+                        <td className="px-3 py-2">{log.date}</td>
+                        <td className="px-3 py-2">{log.perfectPieces}</td>
+                        <td className="px-3 py-2">{log.defectPieces}</td>
+                        <td className="px-3 py-2">{log.totalPieces}</td>
+                        <td className="px-3 py-2">{log.perfect_weight ?? '-'}</td>
+                        <td className="px-3 py-2">{log.defective_weight ?? '-'}</td>
+                        <td className="px-3 py-2">{log.wastage_weight ?? '-'}</td>
+                        <td className="px-3 py-2">{log.remarks || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          )}
-        </div>
+          </div>
+        </Card>
+
+        
       </div>
 
       <Modal

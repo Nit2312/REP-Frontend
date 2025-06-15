@@ -389,17 +389,28 @@ const ColorMixPage: React.FC = () => {
             const formula = formulas.find(f => f.id === Number(selectedFormulaId));
             if (!formula) return;
             try {
-              const formulaObj = JSON.parse(formula.formula);
-              // Calculate ratio based on total formula weights and entered weights
+              // Parse formula object safely
+              let formulaObj = formula.formula;
+              if (typeof formulaObj === 'string') {
+                formulaObj = JSON.parse(formulaObj);
+              }
+              // Calculate total weights
               let formulaTotal = 0;
-              Object.values(formulaObj).forEach((w: any) => { formulaTotal += Number(w); });
+              if (formulaObj && typeof formulaObj === 'object') {
+                Object.values(formulaObj).forEach((w: any) => { formulaTotal += Number(w) || 0; });
+              }
               let enteredTotal = 0;
-              mixMaterials.forEach((m: any) => { enteredTotal += Number(m.quantity); });
-              // Calculate color needed proportionally
-              const colorWeight = Number(formula.colorWeight);
-              const suggested = formulaTotal > 0 ? (enteredTotal / formulaTotal) * colorWeight : 0;
-              setSuggestedColor(suggested);
-            } catch {
+              mixMaterials.forEach((m: any) => { enteredTotal += Number(m.quantity) || 0; });
+              // Get color weight (support both colorWeight and color_weight)
+              let colorWeight = formula.colorWeight;
+              if (colorWeight === undefined && formula.color_weight !== undefined) colorWeight = formula.color_weight;
+              colorWeight = Number(colorWeight) || 0;
+              // Calculate suggestion
+              const suggested = formulaTotal > 0 && colorWeight > 0
+                ? (enteredTotal / formulaTotal) * colorWeight
+                : 0;
+              setSuggestedColor(suggested > 0 ? suggested : null);
+            } catch (e) {
               setSuggestedColor(null);
             }
           }}

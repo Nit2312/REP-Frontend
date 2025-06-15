@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Plus, RefreshCw } from 'lucide-react';
 import Layout from '../components/layout/Layout';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -9,7 +9,6 @@ import Modal from '../components/ui/Modal';
 import MaterialForm from '../components/forms/MaterialForm';
 import { useAuth } from '../context/AuthContext';
 import axios from "../config/axios";
-import { use } from 'i18next';
 
 interface Material {
   id: number;
@@ -55,7 +54,9 @@ useEffect(() => {
     ...colorMixes.map((cm: any) => {
       let materialsStr = '';
       try {
-        const weights = typeof cm.materialWeights === 'string' ? JSON.parse(cm.materialWeights) : cm.materialWeights;
+        // Support both material_weights and materialWeights keys
+        let weights = cm.material_weights ?? cm.materialWeights;
+        if (typeof weights === 'string') weights = JSON.parse(weights);
         if (Array.isArray(weights)) {
           materialsStr = weights.map((mw: any) => {
             const material = materials.find((m: any) => String(m.id) === String(mw.materialId));
@@ -70,11 +71,15 @@ useEffect(() => {
             .join(', ');
         }
       } catch (e) {
-        console.warn('Invalid materialWeights for mix', cm.id, cm.materialWeights);
+        console.warn('Invalid materialWeights for mix', cm.id, cm.material_weights ?? cm.materialWeights);
       }
       return {
         id: `mix-${cm.id}`,
-        name: cm.formulaName ? `Color Mix: ${cm.formulaName}` : `Color Mix #${cm.id}`,
+        name: cm.formula_name
+          ? `Color Mix: ${cm.formula_name}`
+          : (cm.formulaName
+              ? `Color Mix: ${cm.formulaName}`
+              : `Color Mix #${cm.id}`),
         quantity: cm.colorRequirement,
         unit: 'kg',
         threshold: 0,
@@ -124,51 +129,10 @@ useEffect(() => {
       try {
         await axios.delete(`/api/materials/${materialId}`);
         fetchMaterials();
-      } catch (error) {
-        if (axios.isAxiosError(error)) {
-          alert(error.response?.data?.message || 'Error deleting material');
-        }
+      } catch (error: any) {
+        alert(error?.response?.data?.message || 'Error deleting material');
         console.error('Error deleting material:', error);
       }
-    }
-  };
-
-  const fetchInventory = async () => {
-    try {
-      const response = await axios.get('/api/inventory');
-      setInventory(response.data);
-    } catch (error) {
-      console.error('Error fetching inventory:', error);
-    }
-  };
-
-  const handleAddItem = async (data: any) => {
-    try {
-      await axios.post('/api/inventory', data);
-      setShowAddModal(false);
-      fetchInventory();
-    } catch (error) {
-      console.error('Error adding inventory item:', error);
-    }
-  };
-
-  const handleUpdateItem = async (id: number, data: any) => {
-    try {
-      await axios.put(`/api/inventory/${id}`, data);
-      setSelectedItem(null);
-      fetchInventory();
-    } catch (error) {
-      console.error('Error updating inventory item:', error);
-    }
-  };
-
-  const handleDeleteItem = async (id: number) => {
-    if (!window.confirm('Delete this inventory item?')) return;
-    try {
-      await axios.delete(`/api/inventory/${id}`);
-      fetchInventory();
-    } catch (error) {
-      console.error('Error deleting inventory item:', error);
     }
   };
 
