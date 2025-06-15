@@ -122,7 +122,7 @@ const TasksPage: React.FC = () => {
   const fetchTasks = async () => {
     try {
       setLoading(true);
-      const res = await axios.get('/api/tasks');
+      const res = await axios.get('/tasks');
       console.log('API Response:', res.data);
       
       // Filter tasks based on user role
@@ -159,11 +159,11 @@ const TasksPage: React.FC = () => {
   const fetchDropdownData = async () => {
     try {
       const [machinesRes, mouldsRes, productsRes, formulasRes, workersRes] = await Promise.all([
-        axios.get('/api/machines'),
-        axios.get('/api/moulds'),
-        axios.get('/api/products'),
-        axios.get('/api/color-mix-formulas'),
-        axios.get('/api/workers')
+        axios.get('/machines'),
+        axios.get('/moulds'),
+        axios.get('/products'),
+        axios.get('/color-mix-formulas'),
+        axios.get('/workers')
       ]);
 
       setMachines(machinesRes.data);
@@ -237,10 +237,10 @@ const TasksPage: React.FC = () => {
       };
 
       if (selectedTask) {
-        await axios.put(`/api/tasks/${selectedTask.id}`, data);
+        await axios.put(`/tasks/${selectedTask.id}`, data);
         toast.success('Task updated successfully');
       } else {
-        await axios.post('/api/tasks', data);
+        await axios.post('/tasks', data);
         toast.success('Task created successfully');
       }
 
@@ -276,7 +276,7 @@ const TasksPage: React.FC = () => {
 
     setUpdatingStatus(taskId);
     try {
-      await axios.put(`/api/tasks/${taskId}`, { status: newStatus });
+      await axios.put(`/tasks/${taskId}`, { status: newStatus });
       toast.success('Task status updated successfully');
       fetchTasks();
     } catch (err) {
@@ -296,7 +296,7 @@ const TasksPage: React.FC = () => {
     
     setDeletingTask(id);
     try {
-      await axios.delete(`/api/tasks/${id}`);
+      await axios.delete(`/tasks/${id}`);
       toast.success('Task deleted successfully');
       fetchTasks();
     } catch (error: any) {

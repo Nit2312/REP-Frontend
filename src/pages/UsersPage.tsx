@@ -28,7 +28,7 @@ const UsersPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get('/api/users');
+      const response = await axios.get('/users');
       console.log('Fetched users:', response.data);
       setUsers(response.data);
     } catch (error) {
@@ -42,7 +42,7 @@ const UsersPage: React.FC = () => {
   const handleAddUser = async (data: any) => {
     try {
       setError(null);
-      await axios.post('/api/users', data);
+      await axios.post('/users', data);
       setShowAddModal(false);
       fetchUsers();
     } catch (error) {
@@ -54,7 +54,7 @@ const UsersPage: React.FC = () => {
   const handleUpdateUser = async (id: number, data: any) => {
     try {
       setError(null);
-      await axios.put(`/api/users/${id}`, data);
+      await axios.put(`/users/${id}`, data);
       setSelectedUser(null);
       fetchUsers();
     } catch (error) {
@@ -67,7 +67,7 @@ const UsersPage: React.FC = () => {
     if (!window.confirm(t('users.confirmDelete'))) return;
     try {
       setError(null);
-      await axios.delete(`/api/users/${id}`);
+      await axios.delete(`/users/${id}`);
       fetchUsers();
     } catch (error) {
       console.error('Error deleting user:', error);

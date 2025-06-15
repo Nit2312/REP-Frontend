@@ -28,7 +28,7 @@ const ProductsPage = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/products');
+      const response = await axios.get('/products');
       setProducts(response.data);
       setError(null);
     } catch (error: any) {
@@ -47,7 +47,7 @@ const ProductsPage = () => {
         setError('Name and category are required');
         return;
       }
-      await axios.post('/api/products', {
+      await axios.post('/products', {
         name: data.name,
         description: data.description || null,
         category: data.category,
@@ -73,7 +73,7 @@ const ProductsPage = () => {
         setError('Name and category are required');
         return;
       }
-      await axios.put(`/api/products/${id}`, {
+      await axios.put(`/products/${id}`, {
         name: data.name,
         description: data.description || null,
         category: data.category,
@@ -95,7 +95,7 @@ const ProductsPage = () => {
   const handleDeleteProduct = async (id: number) => {
     if (!window.confirm('Are you sure you want to delete this product?')) return;
     try {
-      await axios.delete(`/api/products/${id}`);
+      await axios.delete(`/products/${id}`);
       fetchProducts();
     } catch (error: any) {
       if (error.response) {

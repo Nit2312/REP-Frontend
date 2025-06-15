@@ -67,7 +67,7 @@ const ProductionLogsPage: React.FC = () => {
     setLoading(true);
     try {
       console.log('Fetching logs for task ID:', taskId);
-      const response = await axios.get(`/api/hourly-production-logs/task/${taskId}`);
+      const response = await axios.get(`/hourly-production-logs/task/${taskId}`);
       console.log('API Response:', response.data);
       
       // Map backend fields to frontend fields
@@ -99,7 +99,7 @@ const ProductionLogsPage: React.FC = () => {
   const handleDelete = async (id: number) => {
     if (!window.confirm('Are you sure you want to delete this log?')) return;
     try {
-      await axios.delete(`/api/hourly-production-logs/${id}`);
+      await axios.delete(`/hourly-production-logs/${id}`);
       toast.success('Log deleted successfully');
       fetchLogs();
     } catch (err: any) {
@@ -142,11 +142,11 @@ const ProductionLogsPage: React.FC = () => {
 
       if (formData.id) {
         // Update existing log
-        await axios.put(`/api/hourly-production-logs/${formData.id}`, data);
+        await axios.put(`/hourly-production-logs/${formData.id}`, data);
         toast.success('Log updated successfully');
       } else {
         // Create new log
-        await axios.post('/api/hourly-production-logs', data);
+        await axios.post('/hourly-production-logs', data);
         toast.success('Log created successfully');
       }
 
