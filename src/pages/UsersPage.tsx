@@ -42,12 +42,16 @@ const UsersPage: React.FC = () => {
   const handleAddUser = async (data: any) => {
     try {
       setError(null);
+      console.log('[AddUser] Payload:', data);
       await axios.post('/users', data);
       setShowAddModal(false);
       fetchUsers();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding user:', error);
-      setError('Failed to add user');
+      // Show backend error message if available
+      const msg = error?.response?.data?.message || 'Failed to add user';
+      setError(msg);
+      alert(msg);
     }
   };
 
@@ -55,7 +59,7 @@ const UsersPage: React.FC = () => {
     try {
       setError(null);
       // Always include userId from selectedUser if not present in data
-      const userIdToSend = data.userId || selectedUser?.userId || selectedUser?.user_id;
+      const userIdToSend = data.userId || selectedUser?.userId;
       await axios.put(`/users/${id}`, { ...data, userId: userIdToSend });
       setSelectedUser(null);
       fetchUsers();

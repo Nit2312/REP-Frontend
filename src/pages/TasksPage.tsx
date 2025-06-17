@@ -125,29 +125,8 @@ const TasksPage: React.FC = () => {
       const res = await axios.get('/tasks');
       console.log('API Response:', res.data);
       
-      // Filter tasks based on user role
-      let filteredTasks = res.data;
-      if (state.user?.role === 'worker') {
-        filteredTasks = res.data.filter((task: Task) => {
-          // Handle both string and number worker_id
-          const taskWorkerId = String(task.worker_id);
-          const userId = state.user ? String(state.user.userId) : '';
-          return taskWorkerId === userId;
-        });
-      }
-      
-      if (filteredTasks && filteredTasks.length > 0) {
-        console.log('Sample task with names:', {
-          id: filteredTasks[0].id,
-          name: filteredTasks[0].name,
-          machine: { id: filteredTasks[0].machine_id, name: filteredTasks[0].machine_name },
-          mould: { id: filteredTasks[0].mould_id, name: filteredTasks[0].mould_name },
-          product: { id: filteredTasks[0].product_id, name: filteredTasks[0].product_name },
-          worker: { id: filteredTasks[0].worker_id, name: filteredTasks[0].worker_name },
-          colorMix: { id: filteredTasks[0].color_mix_id, name: filteredTasks[0].color_mix_name }
-        });
-      }
-      setTasks(filteredTasks);
+      // Remove worker filtering here; always set all tasks
+      setTasks(res.data);
     } catch (err) {
       console.error('Error fetching tasks:', err);
       toast.error('Failed to fetch tasks');
@@ -176,17 +155,28 @@ const TasksPage: React.FC = () => {
     }
   };
 
+  // Debug: Log user and tasks
+  console.log('[TasksPage] state.user:', state.user);
+  console.log('[TasksPage] All tasks:', tasks);
+  console.log('[TasksPage] Logged-in userId:', state.user?.userId);
+
+  // Patch: filter for worker tasks here
   const filteredTasks = tasks.filter(task => {
+    let matchesWorker = true;
+    if (state.user?.role === 'worker') {
+      const taskWorkerId = task.worker_id;
+      const userId = state.user ? state.user.id : null;
+      console.log('[TasksPage] Filtering for worker:', userId, 'against', taskWorkerId, 'status:', task.status);
+      matchesWorker = taskWorkerId === userId && (task.status === 'in_progress' || task.status === 'completed');
+    }
     const matchesSearch = task.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          task.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          task.machine_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          task.mould_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          task.product_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          task.worker_name?.toLowerCase().includes(searchQuery.toLowerCase());
-    
     const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
+    return matchesWorker && matchesSearch && matchesStatus;
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -459,127 +449,129 @@ const TasksPage: React.FC = () => {
       )}
 
       {/* Task Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 gap-2">
         {filteredTasks.map((task) => {
           const progress = calculateProgress(task.completed_pieces, task.target);
           const progressColor = getProgressColor(progress);
           const statusColor = getStatusColor(task.status);
-          
+
           return (
             <Card key={task.id} className="flex flex-col justify-between h-full hover:shadow-lg transition-shadow duration-200">
-              <div>
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex-1 min-w-0">
-                    <h2 className="text-lg font-semibold text-gray-900 truncate" title={task.name}>
-                      {task.name}
-                    </h2>
-                    {task.description && (
-                      <p className="text-sm text-gray-500 mt-1 line-clamp-2" title={task.description}>
-                        {task.description}
-                      </p>
+              <>
+                <div>
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1 min-w-0">
+                      <h2 className="text-lg font-semibold text-gray-900 truncate" title={task.name}>
+                        {task.name}
+                      </h2>
+                      {task.description && (
+                        <p className="text-sm text-gray-500 mt-1 line-clamp-2" title={task.description}>
+                          {task.description}
+                        </p>
+                      )}
+                    </div>
+                    {state.user?.role !== 'worker' && (
+                      <OptionsMenu
+                        options={[
+                          { 
+                            label: 'Edit', 
+                            onClick: () => handleEditTask(task)
+                          },
+                          { 
+                            label: deletingTask === task.id ? 'Deleting...' : 'Delete', 
+                            onClick: () => handleDeleteTask(task.id)
+                          }
+                        ]}
+                      />
                     )}
                   </div>
-                  {state.user?.role !== 'worker' && (
-                    <OptionsMenu
-                      options={[
-                        { 
-                          label: 'Edit', 
-                          onClick: () => handleEditTask(task)
-                        },
-                        { 
-                          label: deletingTask === task.id ? 'Deleting...' : 'Delete', 
-                          onClick: () => handleDeleteTask(task.id)
-                        }
-                      ]}
-                    />
-                  )}
-                </div>
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="min-w-0">
-                      <span className="text-xs font-medium text-gray-500 block mb-1">Machine</span>
-                      <p className="text-sm font-medium text-gray-900 truncate" title={task.machine_name || 'Not assigned'}>
-                        {task.machine_name || 'Not assigned'}
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="min-w-0">
+                        <span className="text-xs font-medium text-gray-500 block mb-1">Machine</span>
+                        <p className="text-sm font-medium text-gray-900 truncate" title={task.machine_name || 'Not assigned'}>
+                          {task.machine_name || (task.machine_id ? `ID: ${task.machine_id}` : <span className="text-gray-400 italic">Unassigned</span>)}
+                        </p>
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-xs font-medium text-gray-500 block mb-1">Mould</span>
+                        <p className="text-sm font-medium text-gray-900 truncate" title={task.mould_name || 'Not assigned'}>
+                          {task.mould_name || (task.mould_id ? `ID: ${task.mould_id}` : <span className="text-gray-400 italic">Unassigned</span>)}
+                        </p>
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-xs font-medium text-gray-500 block mb-1">Product</span>
+                        <p className="text-sm font-medium text-gray-900 truncate" title={task.product_name || 'Not assigned'}>
+                          {task.product_name || (task.product_id ? `ID: ${task.product_id}` : <span className="text-gray-400 italic">Unassigned</span>)}
+                        </p>
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-xs font-medium text-gray-500 block mb-1">Worker</span>
+                        <p className="text-sm font-medium text-gray-900 truncate" title={task.worker_name || 'Not assigned'}>
+                          {task.worker_name || (task.worker_id ? `ID: ${task.worker_id}` : <span className="text-gray-400 italic">Unassigned</span>)}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-xs font-medium text-gray-500 block mb-1">Status</span>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColor}`}>
+                          {formatStatus(task.status)}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-xs font-medium text-gray-500 block mb-1">Target</span>
+                        <p className="text-sm font-medium text-gray-900">{(task.target || 0).toLocaleString()}</p>
+                      </div>
+                    </div>
+                    <div className="bg-gray-50 p-3 rounded-lg">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-xs font-medium text-gray-500">Progress</span>
+                        <span className="text-xs font-medium text-gray-900">{progress}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2.5">
+                        <div 
+                          className={`h-2.5 rounded-full ${progressColor} transition-all duration-300`}
+                          style={{ width: `${progress}%` }}
+                          role="progressbar"
+                          aria-valuenow={progress}
+                          aria-valuemin={0}
+                          aria-valuemax={100}
+                        ></div>
+                      </div>
+                      <p className="text-xs text-gray-600 mt-1">
+                        {(task.completed_pieces || 0).toLocaleString()} / {(task.target || 0).toLocaleString()} pieces
                       </p>
-                    </div>
-                    <div className="min-w-0">
-                      <span className="text-xs font-medium text-gray-500 block mb-1">Mould</span>
-                      <p className="text-sm font-medium text-gray-900 truncate" title={task.mould_name || 'Not assigned'}>
-                        {task.mould_name || 'Not assigned'}
-                      </p>
-                    </div>
-                    <div className="min-w-0">
-                      <span className="text-xs font-medium text-gray-500 block mb-1">Product</span>
-                      <p className="text-sm font-medium text-gray-900 truncate" title={task.product_name || 'Not assigned'}>
-                        {task.product_name || 'Not assigned'}
-                      </p>
-                    </div>
-                    <div className="min-w-0">
-                      <span className="text-xs font-medium text-gray-500 block mb-1">Worker</span>
-                      <p className="text-sm font-medium text-gray-900 truncate" title={task.worker_name || 'Not assigned'}>
-                        {task.worker_name || 'Not assigned'}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-xs font-medium text-gray-500 block mb-1">Status</span>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColor}`}>
-                        {formatStatus(task.status)}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-xs font-medium text-gray-500 block mb-1">Target</span>
-                      <p className="text-sm font-medium text-gray-900">{(task.target || 0).toLocaleString()}</p>
                     </div>
                   </div>
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-xs font-medium text-gray-500">Progress</span>
-                      <span className="text-xs font-medium text-gray-900">{progress}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
-                      <div 
-                        className={`h-2.5 rounded-full ${progressColor} transition-all duration-300`}
-                        style={{ width: `${progress}%` }}
-                        role="progressbar"
-                        aria-valuenow={progress}
-                        aria-valuemin={0}
-                        aria-valuemax={100}
-                      ></div>
-                    </div>
-                    <p className="text-xs text-gray-600 mt-1">
-                      {(task.completed_pieces || 0).toLocaleString()} / {(task.target || 0).toLocaleString()} pieces
-                    </p>
-                  </div>
                 </div>
-              </div>
-              <div className="flex justify-end mt-4 pt-3 border-t border-gray-100">
-                <div className="flex flex-col sm:flex-row gap-2 w-full">
-                  {state.user?.role !== 'worker' && (
-                    <Select
-                      id={`task-status-${task.id}`}
-                      value={task.status}
-                      onChange={(value) => handleStatusUpdate(task.id, value)}
-                      options={[
-                        { value: 'pending', label: 'Pending' },
-                        { value: 'in_progress', label: 'In Progress' },
-                        { value: 'completed', label: 'Completed' },
-                        { value: 'cancelled', label: 'Cancelled' }
-                      ]}
+                <div className="flex justify-end mt-4 pt-3 border-t border-gray-100">
+                  <div className="flex flex-col sm:flex-row gap-2 w-full">
+                    {state.user?.role !== 'worker' && (
+                      <Select
+                        id={`task-status-${task.id}`}
+                        value={task.status}
+                        onChange={(value) => handleStatusUpdate(task.id, value)}
+                        options={[
+                          { value: 'pending', label: 'Pending' },
+                          { value: 'in_progress', label: 'In Progress' },
+                          { value: 'completed', label: 'Completed' },
+                          { value: 'cancelled', label: 'Cancelled' }
+                        ]}
+                        className="w-full sm:w-auto"
+                        disabled={updatingStatus === task.id}
+                      />
+                    )}
+                    <Button 
+                      variant="primary" 
+                      size="sm" 
+                      onClick={() => goToHourlyProduction(task.id)}
                       className="w-full sm:w-auto"
-                      disabled={updatingStatus === task.id}
-                    />
-                  )}
-                  <Button 
-                    variant="primary" 
-                    size="sm" 
-                    onClick={() => goToHourlyProduction(task.id)}
-                    className="w-full sm:w-auto"
-                    disabled={updatingStatus === task.id || deletingTask === task.id}
-                  >
-                    {updatingStatus === task.id ? 'Updating...' : 'Go to Hourly Production'}
-                  </Button>
+                      disabled={updatingStatus === task.id || deletingTask === task.id}
+                    >
+                      {updatingStatus === task.id ? 'Updating...' : 'Go to Hourly Production'}
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              </>
             </Card>
           );
         })}

@@ -12,6 +12,7 @@ interface AddColorMixFormProps {
 }
 
 const AddColorMixForm: React.FC<AddColorMixFormProps> = ({ formulas, materials, initialData, onSubmit, onCancel }) => {
+  // Patch: always normalize initialData.materialWeights to array of { materialId, quantity }
   const normalizeMaterialWeights = (mw: any) => {
     if (!mw) return [{ materialId: '', quantity: '' }];
     if (typeof mw === 'string') {
@@ -27,6 +28,7 @@ const AddColorMixForm: React.FC<AddColorMixFormProps> = ({ formulas, materials, 
         quantity: String(entry.quantity)
       }));
     } else if (typeof mw === 'object' && mw !== null) {
+      // If object, treat as { materialId: quantity, ... }
       return Object.entries(mw).map(([materialId, quantity]) => ({
         materialId: String(materialId),
         quantity: String(quantity)
@@ -35,17 +37,23 @@ const AddColorMixForm: React.FC<AddColorMixFormProps> = ({ formulas, materials, 
     return [{ materialId: '', quantity: '' }];
   };
 
-  const [formulaId, setFormulaId] = useState(initialData?.formulaId || '');
+  const [formulaId, setFormulaId] = useState(initialData?.formulaId || initialData?.formula_id || '');
   const [activityId, setActivityId] = useState(initialData?.activityId || '');
   const [mixMaterials, setMixMaterials] = useState(
-    normalizeMaterialWeights(initialData?.materialWeights)
+    normalizeMaterialWeights(initialData?.materialWeights || initialData?.material_weights)
   );
-  const [colorRequirement, setColorRequirement] = useState(initialData?.colorRequirement || '');
+  const [colorRequirement, setColorRequirement] = useState(initialData?.colorRequirement || initialData?.color_requirement || '');
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (initialData?.materialWeights) {
-      setMixMaterials(normalizeMaterialWeights(initialData.materialWeights));
+    if (initialData?.materialWeights || initialData?.material_weights) {
+      setMixMaterials(normalizeMaterialWeights(initialData.materialWeights || initialData.material_weights));
+    }
+    if (initialData?.formulaId || initialData?.formula_id) {
+      setFormulaId(initialData.formulaId || initialData.formula_id);
+    }
+    if (initialData?.colorRequirement || initialData?.color_requirement) {
+      setColorRequirement(initialData.colorRequirement || initialData.color_requirement);
     }
   }, [initialData]);
 

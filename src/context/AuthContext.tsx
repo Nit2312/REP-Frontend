@@ -97,7 +97,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (token && user) {
         console.log('[Auth] Login successful, storing token');
         localStorage.setItem('token', token);
-        dispatch({ type: 'LOGIN_SUCCESS', payload: user });
+        
+        // Patch: ensure userId is always present in camelCase
+        const normalizedUser = {
+          ...user,
+          userId: user.userId || user.user_id || '',
+          role: user.role,
+          id: user.id
+        };
+        dispatch({ type: 'LOGIN_SUCCESS', payload: normalizedUser });
       } else {
         console.error('[Auth] Invalid login response:', response.data);
         dispatch({ type: 'LOGIN_FAILURE', payload: 'Invalid login response from server' });

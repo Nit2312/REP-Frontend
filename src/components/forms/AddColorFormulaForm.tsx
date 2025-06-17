@@ -12,9 +12,22 @@ interface AddColorFormulaFormProps {
 
 const AddColorFormulaForm: React.FC<AddColorFormulaFormProps> = ({ materials, onSubmit, onCancel, initialData }) => {
   const [name, setName] = useState(initialData?.name || '');
+  // Patch: handle both string and object for initialData.formula
+  let parsedFormula: any = undefined;
+  if (initialData?.formula) {
+    if (typeof initialData.formula === 'string') {
+      try {
+        parsedFormula = JSON.parse(initialData.formula);
+      } catch {
+        parsedFormula = {};
+      }
+    } else if (typeof initialData.formula === 'object') {
+      parsedFormula = initialData.formula;
+    }
+  }
   const [materialRows, setMaterialRows] = useState(
-    initialData?.formula
-      ? Object.entries(JSON.parse(initialData.formula)).map(([materialId, weight]) => ({ materialId, weight }))
+    parsedFormula
+      ? Object.entries(parsedFormula).map(([materialId, weight]) => ({ materialId, weight }))
       : [{ materialId: '', weight: '' }]
   );
   const [colorWeight, setColorWeight] = useState(initialData?.colorWeight || '');

@@ -57,6 +57,17 @@ const ProductionLogsPage: React.FC = () => {
   });
   const { user } = state;
 
+  // Only allow access to admin and super_admin
+  if (user?.role !== 'admin' && user?.role !== 'super_admin') {
+    return (
+      <Layout>
+        <div className="p-8 text-center text-red-600 font-semibold text-lg">
+          You do not have permission to view this page.
+        </div>
+      </Layout>
+    );
+  }
+
   useEffect(() => {
     if (taskId) {
       fetchLogs();

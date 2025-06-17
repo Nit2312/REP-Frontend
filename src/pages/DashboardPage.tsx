@@ -115,6 +115,11 @@ const DashboardPage: React.FC = () => {
     fetchDropdownData();
   }, [filter]);
 
+  // Debug: Log dashboardData to help diagnose blank screen issues
+  useEffect(() => {
+    console.log('[DashboardPage] dashboardData:', dashboardData);
+  }, [dashboardData]);
+
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
@@ -349,32 +354,40 @@ const DashboardPage: React.FC = () => {
             <strong className="font-bold">Error: </strong>
             <span className="block sm:inline">{error}</span>
           </div>
-        ) : dashboardData ? (
+        ) : !dashboardData ? (
+          <div className="text-center p-8">
+            <p className="text-gray-500">{t('No dashboard data received from server.')}</p>
+          </div>
+        ) : dashboardData && dashboardData.overallStats === undefined ? (
+          <div className="text-center p-8">
+            <p className="text-gray-500">{t('Dashboard data is missing required fields.')}</p>
+          </div>
+        ) : (
           <>
             {/* Overall Statistics */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              {renderStatCard(t('Total Tasks'), dashboardData.overallStats.totalTasks)}
-              {renderStatCard(t('Total Pieces'), dashboardData.overallStats.totalPieces)}
+              {renderStatCard(t('Total Tasks'), dashboardData?.overallStats?.totalTasks ?? 0)}
+              {renderStatCard(t('Total Pieces'), dashboardData?.overallStats?.totalPieces ?? 0)}
               {renderStatCard(
                 t('Efficiency'),
-                `${dashboardData.overallStats.efficiency.toFixed(1)}%`,
+                `${(dashboardData?.overallStats?.efficiency ?? 0).toFixed(1)}%`,
                 undefined,
-                dashboardData.overallStats.efficiency >= 80 ? 'text-green-600' : 'text-yellow-600'
+                (dashboardData?.overallStats?.efficiency ?? 0) >= 80 ? 'text-green-600' : 'text-yellow-600'
               )}
               {renderStatCard(
                 t('Quality Rate'),
-                `${dashboardData.overallStats.qualityRate.toFixed(1)}%`,
+                `${(dashboardData?.overallStats?.qualityRate ?? 0).toFixed(1)}%`,
                 undefined,
-                dashboardData.overallStats.qualityRate >= 90 ? 'text-green-600' : 'text-yellow-600'
+                (dashboardData?.overallStats?.qualityRate ?? 0) >= 90 ? 'text-green-600' : 'text-yellow-600'
               )}
             </div>
 
             {/* Charts */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              {renderLineChart(dashboardData.hourlyStats, t('Hourly Production'))}
-              {renderBarChart(dashboardData.machineStats, 'efficiency', 'name', t('Machine Performance'))}
-              {renderBarChart(dashboardData.workerStats, 'performanceRate', 'name', t('Worker Performance'))}
-              {renderPieChart(dashboardData.mouldStats, 'totalPieces', 'name', t('Mould Distribution'))}
+              {renderLineChart(dashboardData?.hourlyStats ?? [], t('Hourly Production'))}
+              {renderBarChart(dashboardData?.machineStats ?? [], 'efficiency', 'name', t('Machine Performance'))}
+              {renderBarChart(dashboardData?.workerStats ?? [], 'performanceRate', 'name', t('Worker Performance'))}
+              {renderPieChart(dashboardData?.mouldStats ?? [], 'totalPieces', 'name', t('Mould Distribution'))}
             </div>
 
             {/* Recent Activity */}
@@ -432,10 +445,6 @@ const DashboardPage: React.FC = () => {
               </div>
             </Card>
           </>
-        ) : (
-          <div className="text-center p-8">
-            <p className="text-gray-500">{t('No data available')}</p>
-          </div>
         )}
       </div>
     </Layout>

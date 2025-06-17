@@ -40,7 +40,7 @@ const ColorMixPage: React.FC = () => {
   }, []);
 
   const fetchColorMixes = async () => {
-    const res = await axios.get('/api/color-mix-entries');
+    const res = await axios.get('/color-mix-entries');
     console.log('Raw color mixes data:', res.data);
     const processedMixes = res.data.map((mix: any) => {
       console.log('Processing mix:', {
@@ -55,12 +55,13 @@ const ColorMixPage: React.FC = () => {
     setColorMixes(processedMixes);
   };
   const fetchFormulas = async () => {
-    const res = await axios.get('/api/color-mix-formulas');
+    const res = await axios.get('/color-mix-formulas');
     setFormulas(res.data);
   };
   const fetchMaterials = async () => {
-    const res = await axios.get('/api/materials');
+    const res = await axios.get('/materials');
     setMaterials(res.data);
+    console.log('[ColorMixPage] materials fetched:', res.data);
   };
 
   // Suggest color amount based on selected formula and entered materials
@@ -90,7 +91,7 @@ const ColorMixPage: React.FC = () => {
         ? JSON.parse(data.materialWeights)
         : data.materialWeights;
       // Send as native array (not JSON string)
-      const response = await axios.post('/api/color-mix-entries', {
+      const response = await axios.post('/color-mix-entries', {
         formulaId: data.formulaId,
         materialWeights: materialWeightsArr,
         colorRequirement: data.colorRequirement
@@ -104,7 +105,7 @@ const ColorMixPage: React.FC = () => {
           if (newQuantity < 0) {
             throw new Error(`Not enough ${existingMaterial.name} in stock`);
           }
-          await axios.put(`/api/materials/${material.materialId}`, {
+          await axios.put(`/materials/${material.materialId}`, {
             ...existingMaterial,
             quantity: newQuantity
           });
@@ -128,28 +129,39 @@ const ColorMixPage: React.FC = () => {
       const materialWeightsArr = typeof data.materialWeights === 'string'
         ? JSON.parse(data.materialWeights)
         : data.materialWeights;
-      // Send as native array (not JSON string)
-      const response = await axios.put(`/api/color-mix-entries/${id}`, {
+      // Ensure all required fields are present and correct
+      const mixObj = {
         formulaId: data.formulaId,
         materialWeights: materialWeightsArr,
         colorRequirement: data.colorRequirement
-      });
+      };
+      const response = await axios.put(`/color-mix-entries/${id}`, mixObj);
       console.log('Update mix response:', response.data);
       // Parse old material weights
-      const oldMaterialWeights = typeof oldMix.materialWeights === 'string' 
-        ? JSON.parse(oldMix.materialWeights) 
-        : oldMix.materialWeights;
-      // Update each material's quantity
+      let oldMaterialWeights = oldMix.materialWeights;
+      if (typeof oldMaterialWeights === 'string') {
+        try {
+          oldMaterialWeights = JSON.parse(oldMaterialWeights);
+        } catch {
+          oldMaterialWeights = [];
+        }
+      }
       for (const material of materialWeightsArr) {
         const existingMaterial = materials.find(m => String(m.id) === String(material.materialId));
+        let oldQuantity = 0;
+        if (Array.isArray(oldMaterialWeights)) {
+          const found = oldMaterialWeights.find((mw: any) => String(mw.materialId) === String(material.materialId));
+          oldQuantity = found ? Number(found.quantity) : 0;
+        } else if (typeof oldMaterialWeights === 'object' && oldMaterialWeights !== null) {
+          oldQuantity = Number(oldMaterialWeights[material.materialId] || 0);
+        }
         if (existingMaterial) {
-          const oldQuantity = oldMaterialWeights[material.materialId] || 0;
-          const quantityDiff = Number(material.quantity) - Number(oldQuantity);
+          const quantityDiff = Number(material.quantity) - oldQuantity;
           const newQuantity = existingMaterial.quantity - quantityDiff;
           if (newQuantity < 0) {
             throw new Error(`Not enough ${existingMaterial.name} in stock`);
           }
-          await axios.put(`/api/materials/${material.materialId}`, {
+          await axios.put(`/materials/${material.materialId}`, {
             ...existingMaterial,
             quantity: newQuantity
           });
@@ -167,7 +179,7 @@ const ColorMixPage: React.FC = () => {
     if (window.confirm('Delete this color mix?')) {
       try {
         console.log('Deleting color mix:', id);
-        await axios.delete(`/api/color-mix-entries/${id}`);
+        await axios.delete(`/color-mix-entries/${id}`);
         await fetchColorMixes();
       } catch (error) {
         console.error('Error deleting color mix:', error);
@@ -179,7 +191,7 @@ const ColorMixPage: React.FC = () => {
   // CRUD handlers for color formulas
   const handleAddFormula = async (data: any) => {
     try {
-      await axios.post('/api/color-mix-formulas', {
+      await axios.post('/color-mix-formulas', {
         ...data,
         createdBy: state.user?.id // ensure createdBy is set
       });
@@ -191,7 +203,14 @@ const ColorMixPage: React.FC = () => {
   };
   const handleUpdateFormula = async (id: number, data: any) => {
     try {
-      await axios.put(`/api/color-mix-formulas/${id}`, data);
+      // Ensure all required fields are present and correct
+      const formulaObj = {
+        name: data.name,
+        materialCount: data.materialCount,
+        formula: data.formula,
+        colorWeight: data.colorWeight
+      };
+      await axios.put(`/color-mix-formulas/${id}`, formulaObj);
       setSelectedFormula(null);
       fetchFormulas();
     } catch (error) {
@@ -201,7 +220,7 @@ const ColorMixPage: React.FC = () => {
   const handleDeleteFormula = async (id: number) => {
     if (!window.confirm('Delete this color formula?')) return;
     try {
-      await axios.delete(`/api/color-mix-formulas/${id}`);
+      await axios.delete(`/color-mix-formulas/${id}`);
       fetchFormulas();
     } catch (error) {
       console.error('Error deleting color formula:', error);
